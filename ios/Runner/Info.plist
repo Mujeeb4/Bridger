@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleDisplayName</key>
+	<string>Bridge Phone</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>bridge_phone</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(FLUTTER_BUILD_NAME)</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+	<key>CFBundleVersion</key>
+	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
+	<key>UIMainStoryboardFile</key>
+	<string>Main</string>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	
+	<!-- Privacy Permissions -->
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Bridge Phone needs Bluetooth to connect with your Android device for SMS, calls, and notifications.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>Bridge Phone needs Bluetooth to maintain connection with your Android device.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Bridge Phone needs local network access to communicate with your Android device via Wi-Fi.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Bridge Phone needs microphone access to make and receive phone calls through your Android device.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Bridge Phone needs camera access to scan QR code for device pairing.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>Bridge Phone needs access to contacts to display caller information.</string>
+	
+	<!-- Background Modes -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>bluetooth-central</string>
+		<string>bluetooth-peripheral</string>
+		<string>voip</string>
+		<string>audio</string>
+		<string>fetch</string>
+		<string>processing</string>
+	</array>
+	
+	<!-- CallKit -->
+	<key>UIApplicationSupportsIndirectInputEvents</key>
+	<true/>
+	
+	<!-- Audio Session -->
+	<key>UIRequiresPersistentWiFi</key>
+	<true/>
+	
+	<!-- Status Bar -->
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<false/>
+</dict>
+</plist>

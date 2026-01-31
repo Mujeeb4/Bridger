@@ -1,0 +1,169 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- Internet & Network -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE"/>
+    
+    <!-- Bluetooth -->
+    <uses-permission android:name="android.permission.BLUETOOTH"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation"/>
+    
+    <!-- Location (required for BLE) -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    
+    <!-- Phone & SMS -->
+    <uses-permission android:name="android.permission.READ_SMS"/>
+    <uses-permission android:name="android.permission.SEND_SMS"/>
+    <uses-permission android:name="android.permission.RECEIVE_SMS"/>
+    <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
+    <uses-permission android:name="android.permission.CALL_PHONE"/>
+    <uses-permission android:name="android.permission.READ_CALL_LOG"/>
+    <uses-permission android:name="android.permission.WRITE_CALL_LOG"/>
+    <uses-permission android:name="android.permission.ANSWER_PHONE_CALLS"/>
+    <uses-permission android:name="android.permission.MANAGE_OWN_CALLS"/>
+    
+    <!-- Contacts -->
+    <uses-permission android:name="android.permission.READ_CONTACTS"/>
+    
+    <!-- Hotspot/Tethering -->
+    <uses-permission android:name="android.permission.WRITE_SETTINGS"/>
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE"/>
+    
+    <!-- Audio -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
+    
+    <!-- Foreground Service -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_PHONE_CALL"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE"/>
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
+    
+    <!-- Boot -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    
+    <!-- Notifications -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    
+    <!-- Storage -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+
+    <!-- Bluetooth features -->
+    <uses-feature android:name="android.hardware.bluetooth" android:required="true"/>
+    <uses-feature android:name="android.hardware.bluetooth_le" android:required="true"/>
+    
+    <application
+        android:label="Bridge Phone"
+        android:name="${applicationName}"
+        android:icon="@mipmap/ic_launcher"
+        android:enableOnBackInvokedCallback="true">
+        
+        <!-- Main Activity -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:theme="@style/LaunchTheme"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize">
+            
+            <meta-data
+                android:name="io.flutter.embedding.android.NormalTheme"
+                android:resource="@style/NormalTheme"/>
+            
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+        
+        <!-- Foreground Service -->
+        <service
+            android:name="com.bridge.phone.services.BridgeForegroundService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="phoneCall|microphone|connectedDevice"/>
+        
+        <!-- InCall Service -->
+        <service
+            android:name="com.bridge.phone.services.BridgeInCallService"
+            android:permission="android.permission.BIND_INCALL_SERVICE"
+            android:enabled="true"
+            android:exported="true">
+            <meta-data
+                android:name="android.telecom.IN_CALL_SERVICE_UI"
+                android:value="true"/>
+            <intent-filter>
+                <action android:name="android.telecom.InCallService"/>
+            </intent-filter>
+        </service>
+        
+        <!-- Notification Listener Service -->
+        <service
+            android:name="com.bridge.phone.services.NotificationListenerService"
+            android:label="Bridge Notification Listener"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService"/>
+            </intent-filter>
+        </service>
+        
+        <!-- SMS Receiver -->
+        <receiver
+            android:name="com.bridge.phone.receivers.SMSReceiver"
+            android:permission="android.permission.BROADCAST_SMS"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter android:priority="999">
+                <action android:name="android.provider.Telephony.SMS_RECEIVED"/>
+            </intent-filter>
+        </receiver>
+        
+        <!-- Phone State Receiver -->
+        <receiver
+            android:name="com.bridge.phone.receivers.PhoneStateReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.PHONE_STATE"/>
+                <action android:name="android.intent.action.NEW_OUTGOING_CALL"/>
+            </intent-filter>
+        </receiver>
+        
+        <!-- Boot Receiver -->
+        <receiver
+            android:name="com.bridge.phone.receivers.BootReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.QUICKBOOT_POWERON"/>
+            </intent-filter>
+        </receiver>
+        
+        <!-- Flutter Local Notifications -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@mipmap/ic_launcher"/>
+        
+        <!-- Don't delete the meta-data below.
+             This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
+        <meta-data
+            android:name="flutterEmbedding"
+            android:value="2"/>
+    </application>
+</manifest>
