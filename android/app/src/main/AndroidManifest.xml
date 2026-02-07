@@ -112,7 +112,7 @@
         
         <!-- Notification Listener Service -->
         <service
-            android:name="com.bridge.phone.services.NotificationListenerService"
+            android:name="com.bridge.phone.notification.BridgerNotificationListenerService"
             android:label="Bridge Notification Listener"
             android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
             android:enabled="true"
@@ -124,7 +124,7 @@
         
         <!-- SMS Receiver -->
         <receiver
-            android:name="com.bridge.phone.receivers.SMSReceiver"
+            android:name="com.bridge.phone.sms.SMSReceiver"
             android:permission="android.permission.BROADCAST_SMS"
             android:enabled="true"
             android:exported="true">
@@ -135,7 +135,7 @@
         
         <!-- Phone State Receiver -->
         <receiver
-            android:name="com.bridge.phone.receivers.PhoneStateReceiver"
+            android:name="com.bridge.phone.call.PhoneStateReceiver"
             android:enabled="true"
             android:exported="true">
             <intent-filter>

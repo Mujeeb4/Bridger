@@ -50,6 +50,7 @@ dependencies:
   sqflite: ^2.3.2
   drift: ^2.16.0
   sqlite3_flutter_libs: ^0.5.20
+  path: ^1.8.3
   
   # Key-value storage
   shared_preferences: ^2.2.2
