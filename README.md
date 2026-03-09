@@ -132,12 +132,39 @@ flutter build ios --release
 - **Android Native**: Kotlin
 - **iOS Native**: Swift
 
-## Architecture
+## System Architecture
 
-Clean Architecture with three layers:
-- **Presentation**: UI, Widgets, Screens
+Bridger solves the "Non-PTA iPhone" problem by offloading cellular responsibilities to an Android device (the Bridge) while letting the iPhone act as the primary interface. The codebase itself follows **Clean Architecture** with three horizontal layers:
+- **Presentation**: UI, Widgets, Screens (Riverpod for state management)
 - **Domain**: Entities, Use Cases, Repository Interfaces
 - **Data**: Models, Repository Implementations, Data Sources
+
+### Device Roles & Data Flow
+
+**1. The Bridge (Android with SIM)**
+- Runs a **Foreground Service** to never sleep.
+- Detects incoming SMS (`SMSReceiver`) and Calls (`PhoneStateListener`).
+- Connects to the primary device via **Bluetooth Low Energy (BLE)** and **WebSockets**.
+- Forwards commands to the native Android OS.
+
+**2. The Primary Interface (iPhone)**
+- Connects to the Android Bridge.
+- Receives metadata about SMS and Calls.
+- Invokes native iOS **CallKit** to make forwarded calls look completely native.
+- Re-routes outbound SMS requests back through the Bridge.
+
+### Architecture Diagrams
+
+#### 1. High-Level System Architecture
+![High Level Architecture](high_level_system_arc_bridger.png)
+
+#### 2. Incoming Call Flow (WebRTC & CallKit)
+When a call arrives on the Android, metadata is sent over WebSocket to trigger the native iOS Incoming Call screen. Once answered on the iPhone, the Android answers the real network call and bridges the audio over WebRTC.
+![Incoming Call Flow](incomming_call_flow.png)
+
+#### 3. Sending an SMS Sequence
+When typing a message on the iPhone, the localized database updates immediately (optimistic UI), sends JSON payload to the Android device, and waits for a "Delivered" confirmation from the Android cellular network.
+![Sending an SMS Sequence](sending_message.png)
 
 ## Contributing
 
