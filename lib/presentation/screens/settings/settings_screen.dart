@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
+import 'package:intl/intl.dart';
+import '../../../domain/repositories/contact_repository.dart';
 import '../../../domain/repositories/settings_repository.dart';
 import '../../../services/ble_service.dart';
-import '../../../services/communication_service.dart';
+import '../../../services/contact_sync_service.dart';
+import 'connection_settings_screen.dart';
+import 'security_settings_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+  /// When true, the screen is embedded in the HomeScreen tab (no own Scaffold/back button).
+  final bool embedded;
+
+  const SettingsScreen({super.key, this.embedded = false});
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -15,27 +21,38 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final _settingsRepo = GetIt.I<SettingsRepository>();
   final _bleService = GetIt.I<BleService>();
-  final _communicationService = GetIt.I<CommunicationService>();
+  late final ContactSyncService _contactSyncService;
 
   bool _isAutoConnect = true;
   bool _isNotificationsEnabled = true;
   bool _isSyncing = false;
+  bool _isConnected = false;
   String _pairedDeviceName = 'Not Connected';
   String _lastSyncTime = 'Never';
 
   @override
   void initState() {
     super.initState();
+    _contactSyncService = ContactSyncService(
+      GetIt.I<ContactRepository>(),
+      _settingsRepo,
+    );
     _loadSettings();
   }
 
   Future<void> _loadSettings() async {
     final autoConnect = await _settingsRepo.isAutoConnectEnabled();
     final deviceId = await _settingsRepo.getPairedDeviceId();
-    
+    final lastSync = await _contactSyncService.getLastSyncTime();
+    final isConnected = await _bleService.isConnected();
+
     setState(() {
       _isAutoConnect = autoConnect;
       _pairedDeviceName = deviceId ?? 'Not Connected';
+      _isConnected = isConnected;
+      if (lastSync != null) {
+        _lastSyncTime = DateFormat('MMM d, h:mm a').format(lastSync);
+      }
     });
   }
 
@@ -46,23 +63,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
-            // Custom App Bar
+            // Custom App Bar (hide back button if embedded)
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: Row(
                   children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1A2A1A),
-                        borderRadius: BorderRadius.circular(12),
+                    if (!widget.embedded) ...[
+                      Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1A2A1A),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: IconButton(
+                          icon:
+                              const Icon(Icons.arrow_back, color: Colors.white),
+                          onPressed: () => Navigator.pop(context),
+                        ),
                       ),
-                      child: IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.white),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
+                      const SizedBox(width: 16),
+                    ],
                     const Text(
                       'Settings',
                       style: TextStyle(
@@ -93,6 +113,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       setState(() => _isAutoConnect = value);
                     },
                   ),
+                  const Divider(color: Color(0xFF2A3A2A), height: 1),
+                  _buildActionTile(
+                    title: 'Connection Settings',
+                    subtitle: 'Timeout, reconnect attempts, battery mode',
+                    trailing:
+                        const Icon(Icons.chevron_right, color: Colors.white54),
+                    onTap: () {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ConnectionSettingsScreen(),
+                          ));
+                    },
+                  ),
                 ],
               ),
             ),
@@ -115,7 +149,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               color: Color(0xFF4ADE80),
                             ),
                           )
-                        : const Icon(Icons.chevron_right, color: Colors.white54),
+                        : const Icon(Icons.chevron_right,
+                            color: Colors.white54),
                     onTap: _syncContacts,
                   ),
                 ],
@@ -140,7 +175,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _buildActionTile(
                     title: 'App Filter',
                     subtitle: 'Choose which apps to mirror',
-                    trailing: const Icon(Icons.chevron_right, color: Colors.white54),
+                    trailing:
+                        const Icon(Icons.chevron_right, color: Colors.white54),
                     onTap: () {
                       // TODO: Navigate to app filter screen
                     },
@@ -159,7 +195,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     title: 'Encryption',
                     subtitle: 'AES-256 encryption enabled',
                     trailing: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
                         color: const Color(0xFF166534),
                         borderRadius: BorderRadius.circular(20),
@@ -173,13 +210,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ),
                     ),
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const SecuritySettingsScreen(),
+                          ));
+                    },
                   ),
                   const Divider(color: Color(0xFF2A3A2A), height: 1),
                   _buildActionTile(
                     title: 'Unpair Device',
                     subtitle: 'Disconnect and remove paired device',
-                    trailing: const Icon(Icons.chevron_right, color: Colors.white54),
+                    trailing:
+                        const Icon(Icons.chevron_right, color: Colors.white54),
                     onTap: _showUnpairDialog,
                     isDestructive: true,
                   ),
@@ -200,11 +244,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _buildActionTile(
                     title: 'Licenses',
                     subtitle: 'Open source licenses',
-                    trailing: const Icon(Icons.chevron_right, color: Colors.white54),
+                    trailing:
+                        const Icon(Icons.chevron_right, color: Colors.white54),
                     onTap: () {
                       showLicensePage(
                         context: context,
-                        applicationName: 'Bridge Phone',
+                        applicationName: 'Bridger',
                         applicationVersion: '1.0.0',
                       );
                     },
@@ -238,7 +283,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF4ADE80).withOpacity(0.03),
+            color: const Color(0xFF4ADE80).withValues(alpha: 0.03),
             blurRadius: 20,
             offset: const Offset(0, 4),
           ),
@@ -279,8 +324,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildDeviceStatusTile() {
-    final isConnected = _bleService.isConnected;
-    
+    final isConnected = _isConnected;
+
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -289,16 +334,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: isConnected 
-                  ? const Color(0xFF166534) 
+              color: isConnected
+                  ? const Color(0xFF166534)
                   : const Color(0xFF2A2A2A),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
               isConnected ? Icons.phone_android : Icons.phone_android_outlined,
-              color: isConnected 
-                  ? const Color(0xFF4ADE80) 
-                  : Colors.white54,
+              color: isConnected ? const Color(0xFF4ADE80) : Colors.white54,
             ),
           ),
           const SizedBox(width: 16),
@@ -321,9 +364,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       width: 8,
                       height: 8,
                       decoration: BoxDecoration(
-                        color: isConnected 
-                            ? const Color(0xFF4ADE80) 
-                            : Colors.red,
+                        color:
+                            isConnected ? const Color(0xFF4ADE80) : Colors.red,
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -331,8 +373,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Text(
                       isConnected ? 'Connected' : 'Disconnected',
                       style: TextStyle(
-                        color: isConnected 
-                            ? const Color(0xFF4ADE80) 
+                        color: isConnected
+                            ? const Color(0xFF4ADE80)
                             : Colors.white54,
                         fontSize: 14,
                       ),
@@ -398,7 +440,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: const Color(0xFF4ADE80),
+            activeThumbColor: const Color(0xFF4ADE80),
             activeTrackColor: const Color(0xFF166534),
             inactiveThumbColor: Colors.white54,
             inactiveTrackColor: const Color(0xFF2A2A2A),
@@ -481,21 +523,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _syncContacts() async {
-    setState(() => _isSyncing = true);
-    
+    if (_isSyncing) return;
+
+    setState(() {
+      _isSyncing = true;
+    });
+
     try {
-      // TODO: Implement actual contact sync
-      await Future.delayed(const Duration(seconds: 2));
-      
+      final count = await _contactSyncService.syncContacts();
+
       setState(() {
         _lastSyncTime = 'Just now';
         _isSyncing = false;
       });
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Contacts synced successfully'),
+            content: Text('$count contacts synced successfully'),
             backgroundColor: const Color(0xFF166534),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -534,7 +579,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           style: TextStyle(color: Colors.white),
         ),
         content: const Text(
-          'Are you sure you want to unpair this device? You will need to pair again to use Bridge Phone.',
+          'Are you sure you want to unpair this device? You will need to pair again to use Bridger.',
           style: TextStyle(color: Colors.white70),
         ),
         actions: [
@@ -551,7 +596,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               await _settingsRepo.setPairedDeviceId(null);
               await _settingsRepo.setDevicePaired(false);
               _bleService.disconnect();
-              
+
               if (mounted) {
                 Navigator.of(context).popUntil((route) => route.isFirst);
               }

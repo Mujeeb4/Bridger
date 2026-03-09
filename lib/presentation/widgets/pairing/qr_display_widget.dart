@@ -11,8 +11,8 @@ class QRDisplayWidget extends StatelessWidget {
   final VoidCallback? onRefresh;
 
   const QRDisplayWidget({
-    super.key,
     required this.qrData,
+    super.key,
     this.pairingCode,
     this.remainingTime,
     this.onRefresh,
@@ -35,7 +35,7 @@ class QRDisplayWidget extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'Scan this QR code with Bridge Phone on your iPhone',
+          'Scan this QR code with Bridger on your iPhone',
           style: theme.textTheme.bodyMedium?.copyWith(
             color: colorScheme.onSurfaceVariant,
           ),
@@ -51,7 +51,7 @@ class QRDisplayWidget extends StatelessWidget {
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: Colors.black.withValues(alpha: 0.1),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -62,13 +62,13 @@ class QRDisplayWidget extends StatelessWidget {
             version: QrVersions.auto,
             size: 220,
             backgroundColor: Colors.white,
-            eyeStyle: QrEyeStyle(
-              eyeShape: QrEyeShape.roundedRect,
-              color: colorScheme.primary,
+            eyeStyle: const QrEyeStyle(
+              eyeShape: QrEyeShape.square,
+              color: Colors.black,
             ),
-            dataModuleStyle: QrDataModuleStyle(
-              dataModuleShape: QrDataModuleShape.roundedRect,
-              color: colorScheme.onSurface,
+            dataModuleStyle: const QrDataModuleStyle(
+              dataModuleShape: QrDataModuleShape.square,
+              color: Colors.black,
             ),
           ),
         ),
@@ -134,16 +134,16 @@ class QRDisplayWidget extends StatelessWidget {
         Icon(
           Icons.timer_outlined,
           size: 16,
-          color: isExpiringSoon 
-              ? theme.colorScheme.error 
+          color: isExpiringSoon
+              ? theme.colorScheme.error
               : theme.colorScheme.onSurfaceVariant,
         ),
         const SizedBox(width: 4),
         Text(
           'Expires in ${_formatDuration(remainingTime!)}',
           style: theme.textTheme.bodySmall?.copyWith(
-            color: isExpiringSoon 
-                ? theme.colorScheme.error 
+            color: isExpiringSoon
+                ? theme.colorScheme.error
                 : theme.colorScheme.onSurfaceVariant,
           ),
         ),

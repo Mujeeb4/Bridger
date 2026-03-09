@@ -7,8 +7,8 @@ class QRScannerWidget extends StatefulWidget {
   final VoidCallback? onCancel;
 
   const QRScannerWidget({
-    super.key,
     required this.onScanned,
+    super.key,
     this.onCancel,
   });
 
@@ -106,11 +106,11 @@ class _QRScannerWidgetState extends State<QRScannerWidget> {
                       // Toggle flash
                       IconButton.filled(
                         onPressed: () => _controller.toggleTorch(),
-                        icon: ValueListenableBuilder(
-                          valueListenable: _controller,
+                        icon: ValueListenableBuilder<TorchState>(
+                          valueListenable: _controller.torchState,
                           builder: (context, state, _) {
                             return Icon(
-                              state.torchState == TorchState.on
+                              state == TorchState.on
                                   ? Icons.flash_on
                                   : Icons.flash_off,
                             );

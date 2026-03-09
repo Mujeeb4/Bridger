@@ -144,6 +144,29 @@ class CallManager(private val context: Context) {
         }
     }
 
+    /**
+     * Initiate an outgoing phone call
+     */
+    fun makeCall(phoneNumber: String): Boolean {
+        return try {
+            val intent = android.content.Intent(android.content.Intent.ACTION_CALL).apply {
+                data = android.net.Uri.parse("tel:$phoneNumber")
+                flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.CALL_PHONE)
+                == PackageManager.PERMISSION_GRANTED) {
+                context.startActivity(intent)
+                true
+            } else {
+                Log.w(TAG, "No CALL_PHONE permission")
+                false
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error making call to $phoneNumber", e)
+            false
+        }
+    }
+
     // ========================================================================
     // Audio Controls
     // ========================================================================

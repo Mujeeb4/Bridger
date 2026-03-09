@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Bridge Phone</string>
+	<string>Bridger</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>bridge_phone</string>
+	<string>Bridger</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -44,29 +44,33 @@
 	
 	<!-- Privacy Permissions -->
 	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>Bridge Phone needs Bluetooth to connect with your Android device for SMS, calls, and notifications.</string>
+	<string>Bridger needs Bluetooth to connect with your Android device for SMS, calls, and notifications.</string>
 	<key>NSBluetoothPeripheralUsageDescription</key>
-	<string>Bridge Phone needs Bluetooth to maintain connection with your Android device.</string>
+	<string>Bridger needs Bluetooth to maintain connection with your Android device.</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Bridge Phone needs local network access to communicate with your Android device via Wi-Fi.</string>
+	<string>Bridger needs local network access to communicate with your Android device via Wi-Fi.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Bridge Phone needs microphone access to make and receive phone calls through your Android device.</string>
+	<string>Bridger needs microphone access to make and receive phone calls through your Android device.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Bridge Phone needs camera access to scan QR code for device pairing.</string>
+	<string>Bridger needs camera access to scan QR code for device pairing.</string>
 	<key>NSContactsUsageDescription</key>
-	<string>Bridge Phone needs access to contacts to display caller information.</string>
+	<string>Bridger needs access to contacts to display caller information.</string>
 	
 	<!-- Background Modes -->
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>bluetooth-central</string>
-		<string>bluetooth-peripheral</string>
 		<string>voip</string>
 		<string>audio</string>
 		<string>fetch</string>
 		<string>processing</string>
 	</array>
 	
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.pravera.flutter_foreground_task.refresh</string>
+	</array>
+
 	<!-- CallKit -->
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
@@ -77,6 +81,37 @@
 	
 	<!-- Status Bar -->
 	<key>UIViewControllerBasedStatusBarAppearance</key>
-	<false/>
+	<true/>
+	<key>UIStatusBarStyle</key>
+	<string>UIStatusBarStyleLightContent</string>
+	
+	<!-- Export Compliance (uses AES-256-GCM encryption) -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<true/>
+	<key>ITSEncryptionExportComplianceCode</key>
+	<string></string>
+	
+	<!-- App Transport Security - allow local cleartext WebSocket -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<false/>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+	
+	<!-- Required Device Capabilities -->
+	<key>UIRequiredDeviceCapabilities</key>
+	<array>
+		<string>bluetooth-le</string>
+		<string>armv7</string>
+		<string>microphone</string>
+	</array>
+	
+	<!-- Bonjour Services (required for local network browsing on iOS 14+) -->
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_bridgephone._tcp</string>
+	</array>
 </dict>
 </plist>

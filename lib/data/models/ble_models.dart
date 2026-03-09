@@ -1,8 +1,11 @@
 /// BLE data models for communication between Flutter and native layer
+library;
 
 /// Possible BLE connection states
 enum BleConnectionState {
   idle,
+  scanning,
+  connecting,
   advertising,
   connected,
   disconnected,
@@ -15,6 +18,10 @@ extension BleConnectionStateExtension on BleConnectionState {
     switch (value.toUpperCase()) {
       case 'IDLE':
         return BleConnectionState.idle;
+      case 'SCANNING':
+        return BleConnectionState.scanning;
+      case 'CONNECTING':
+        return BleConnectionState.connecting;
       case 'ADVERTISING':
         return BleConnectionState.advertising;
       case 'CONNECTED':
@@ -42,6 +49,11 @@ enum BleEventType {
   smsAlert,
   callAlert,
   appNotification,
+  statusUpdate,
+  pairingResponse,
+  bulkData,
+  servicesReady,
+  log,
 }
 
 /// Extension to parse event type from string
@@ -68,6 +80,16 @@ extension BleEventTypeExtension on BleEventType {
         return BleEventType.callAlert;
       case 'appNotification':
         return BleEventType.appNotification;
+      case 'statusUpdate':
+        return BleEventType.statusUpdate;
+      case 'pairingResponse':
+        return BleEventType.pairingResponse;
+      case 'bulkData':
+        return BleEventType.bulkData;
+      case 'servicesReady':
+        return BleEventType.servicesReady;
+      case 'log':
+        return BleEventType.log;
       default:
         return BleEventType.statusChanged;
     }
@@ -112,14 +134,14 @@ class SmsAlertData {
   });
 
   Map<String, dynamic> toJson() => {
-    'type': 'SMS_RECEIVED',
-    'timestamp': timestamp.millisecondsSinceEpoch,
-    'data': {
-      'from': from,
-      'body': body,
-      'threadId': threadId,
-    },
-  };
+        'type': 'SMS_RECEIVED',
+        'timestamp': timestamp.millisecondsSinceEpoch,
+        'data': {
+          'from': from,
+          'body': body,
+          'threadId': threadId,
+        },
+      };
 }
 
 /// Data model for call alerts sent over BLE
@@ -132,22 +154,20 @@ class CallAlertData {
 
   CallAlertData({
     required this.phoneNumber,
-    this.contactName,
-    required this.callType,
+    required this.callType, required this.timestamp, this.contactName,
     this.duration = 0,
-    required this.timestamp,
   });
 
   Map<String, dynamic> toJson() => {
-    'type': 'CALL_${callType.toUpperCase()}',
-    'timestamp': timestamp.millisecondsSinceEpoch,
-    'data': {
-      'phoneNumber': phoneNumber,
-      'contactName': contactName,
-      'callType': callType,
-      'duration': duration,
-    },
-  };
+        'type': 'CALL_${callType.toUpperCase()}',
+        'timestamp': timestamp.millisecondsSinceEpoch,
+        'data': {
+          'phoneNumber': phoneNumber,
+          'contactName': contactName,
+          'callType': callType,
+          'duration': duration,
+        },
+      };
 }
 
 /// Data model for app notifications sent over BLE
@@ -161,21 +181,20 @@ class AppNotificationData {
   AppNotificationData({
     required this.appName,
     required this.packageName,
-    this.title,
+    required this.timestamp, this.title,
     this.body,
-    required this.timestamp,
   });
 
   Map<String, dynamic> toJson() => {
-    'type': 'APP_NOTIFICATION',
-    'timestamp': timestamp.millisecondsSinceEpoch,
-    'data': {
-      'appName': appName,
-      'packageName': packageName,
-      'title': title,
-      'body': body,
-    },
-  };
+        'type': 'APP_NOTIFICATION',
+        'timestamp': timestamp.millisecondsSinceEpoch,
+        'data': {
+          'appName': appName,
+          'packageName': packageName,
+          'title': title,
+          'body': body,
+        },
+      };
 }
 
 /// Command received from iPhone
@@ -191,10 +210,28 @@ class BleCommand {
   });
 
   factory BleCommand.fromJson(Map<String, dynamic> json) {
+    // The command JSON from BLE has all fields at the top level:
+    //   { "cmd": "...", "action": "CALL_CONTROL", "control": "ANSWER", "id": "..." }
+    // Extract 'cmd' as the command name, and use the rest as payload.
+    // Also support an explicit 'payload' key for structured messages.
+    final cmd = json['cmd'] as String? ?? '';
+    final requestId = json['requestId'] as String? ?? json['id'] as String?;
+
+    Map<String, dynamic> payload;
+    if (json.containsKey('payload') && json['payload'] is Map) {
+      payload = Map<String, dynamic>.from(json['payload'] as Map);
+    } else {
+      // Use all top-level fields (excluding meta keys) as the payload
+      payload = Map<String, dynamic>.from(json);
+      payload.remove('cmd');
+      payload.remove('requestId');
+      payload.remove('id');
+    }
+
     return BleCommand(
-      command: json['cmd'] as String? ?? '',
-      payload: Map<String, dynamic>.from(json['payload'] as Map? ?? {}),
-      requestId: json['requestId'] as String?,
+      command: cmd,
+      payload: payload,
+      requestId: requestId,
     );
   }
 }
@@ -232,4 +269,3 @@ class ScannedDevice {
     return 'Weak';
   }
 }
-

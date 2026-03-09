@@ -1,4 +1,4 @@
-import '../models/pairing_models.dart';
+import '../../data/models/pairing_models.dart';
 
 /// Repository interface for managing paired devices
 abstract class PairingRepository {

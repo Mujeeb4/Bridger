@@ -1,6 +1,6 @@
-import '../../datasources/local/database.dart';
-import '../../../domain/repositories/settings_repository.dart';
-import '../../../core/constants/app_constants.dart';
+import '../datasources/local/database.dart';
+import '../../domain/repositories/settings_repository.dart';
+import '../../core/constants/app_constants.dart';
 
 /// Implementation of SettingsRepository using Drift database
 class SettingsRepositoryImpl implements SettingsRepository {
@@ -90,5 +90,62 @@ class SettingsRepositoryImpl implements SettingsRepository {
   @override
   Future<void> setAutoConnectEnabled(bool value) async {
     await setBoolSetting(AppConstants.keyAutoConnectHotspot, value);
+  }
+
+  // ============================================================================
+  // Connection Settings
+  // ============================================================================
+
+  @override
+  Future<int> getConnectionTimeout() async {
+    return await getIntSetting(
+      AppConstants.keyConnectionTimeout,
+      defaultValue: AppConstants.defaultConnectionTimeout,
+    );
+  }
+
+  @override
+  Future<void> setConnectionTimeout(int seconds) async {
+    await setIntSetting(AppConstants.keyConnectionTimeout, seconds);
+  }
+
+  @override
+  Future<int> getReconnectAttempts() async {
+    return await getIntSetting(
+      AppConstants.keyReconnectAttempts,
+      defaultValue: AppConstants.defaultReconnectAttempts,
+    );
+  }
+
+  @override
+  Future<void> setReconnectAttempts(int attempts) async {
+    await setIntSetting(AppConstants.keyReconnectAttempts, attempts);
+  }
+
+  @override
+  Future<String> getBatteryMode() async {
+    return await getSetting(AppConstants.keyBatteryMode) ?? 
+           AppConstants.defaultBatteryMode;
+  }
+
+  @override
+  Future<void> setBatteryMode(String mode) async {
+    await setSetting(AppConstants.keyBatteryMode, mode);
+  }
+
+  // ============================================================================
+  // Security Settings
+  // ============================================================================
+
+  @override
+  Future<bool> isEncryptionEnabled() async {
+    // Default to true if not set
+    final value = await getSetting(AppConstants.keyEncryptionEnabled);
+    return value?.toLowerCase() != 'false';
+  }
+
+  @override
+  Future<void> setEncryptionEnabled(bool value) async {
+    await setBoolSetting(AppConstants.keyEncryptionEnabled, value);
   }
 }

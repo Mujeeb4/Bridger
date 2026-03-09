@@ -111,11 +111,11 @@ extension CallKitHandler: CXProviderDelegate {
     }
     
     func provider(_ provider: CXProvider, perform action: CXAnswerCallAction) {
-        // User answered the call
+        // User answered the call — notify delegate
         delegate?.callKitHandler(self, didAnswerCall: activeCallNumber ?? "")
         
-        // Configure audio session
-        configureAudioSession()
+        // NOTE: Do NOT start audio here. Audio session is not yet activated.
+        // Audio will be started in provider(_:didActivate:) callback.
         
         action.fulfill()
     }
@@ -136,24 +136,17 @@ extension CallKitHandler: CXProviderDelegate {
     }
     
     func provider(_ provider: CXProvider, didActivate audioSession: AVAudioSession) {
-        // Audio session is now active
+        // CallKit has activated the audio session — now it's safe to start audio engine
+        AudioStreamHandler.shared.startStreaming()
+        print("[CallKitHandler] Audio session activated, streaming started")
     }
     
     func provider(_ provider: CXProvider, didDeactivate audioSession: AVAudioSession) {
-        // Audio session deactivated
+        // Audio session deactivated — stop streaming
+        AudioStreamHandler.shared.stopStreaming()
+        print("[CallKitHandler] Audio session deactivated, streaming stopped")
     }
     
-    // MARK: - Audio Configuration
-    
-    private func configureAudioSession() {
-        do {
-            let audioSession = AVAudioSession.sharedInstance()
-            try audioSession.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetooth])
-            try audioSession.setActive(true)
-        } catch {
-            print("CallKit: Failed to configure audio session: \(error)")
-        }
-    }
 }
 
 // MARK: - Delegate Protocol

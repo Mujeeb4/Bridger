@@ -15,11 +15,9 @@ class ContactEntity extends Equatable {
     required this.id,
     required this.name,
     required this.phoneNumber,
-    this.photoUrl,
+    required this.createdAt, required this.updatedAt, this.photoUrl,
     this.isFavorite = false,
     this.lastContactedAt,
-    required this.createdAt,
-    required this.updatedAt,
   });
 
   /// Get initials from contact name (for avatar display)

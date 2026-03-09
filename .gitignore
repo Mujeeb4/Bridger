@@ -89,3 +89,19 @@ key.properties
 *.key
 *.cert
 assets/certificates/*.pem
+
+# Ignore generated Dart files
+*.g.dart
+*.freezed.dart
+*.mocks.dart
+
+# Ignore unused platforms
+/linux/
+/macos/
+/web/
+/windows/
+
+# Ignore local reference images
+android_bridger_icon.png
+ios_bridger_icon.png
+design_activity.png

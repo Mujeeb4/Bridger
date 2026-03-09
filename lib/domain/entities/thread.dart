@@ -15,13 +15,11 @@ class ThreadEntity extends Equatable {
   const ThreadEntity({
     required this.id,
     required this.phoneNumber,
-    this.contactName,
+    required this.createdAt, required this.updatedAt, this.contactName,
     this.lastMessage,
     this.lastTimestamp,
     this.unreadCount = 0,
     this.isArchived = false,
-    required this.createdAt,
-    required this.updatedAt,
   });
 
   /// Display name shows contact name if available, otherwise phone number

@@ -1,4 +1,4 @@
-import 'dart:convert';
+
 
 /// Call state enum
 enum CallState {
@@ -104,10 +104,7 @@ class CallInfo {
 
   CallInfo({
     required this.phoneNumber,
-    this.contactName,
-    required this.type,
-    required this.state,
-    required this.startTime,
+    required this.type, required this.state, required this.startTime, this.contactName,
     this.isMuted = false,
     this.isSpeakerOn = false,
   });
@@ -159,10 +156,7 @@ class CallLogEntry {
   CallLogEntry({
     required this.id,
     required this.number,
-    this.name,
-    required this.type,
-    required this.timestamp,
-    required this.durationSeconds,
+    required this.type, required this.timestamp, required this.durationSeconds, this.name,
   });
 
   factory CallLogEntry.fromJson(Map<String, dynamic> json) {

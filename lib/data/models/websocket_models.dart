@@ -116,8 +116,7 @@ class WebSocketMessage {
 
   /// Generate a unique message ID
   static String generateId() {
-    return DateTime.now().millisecondsSinceEpoch.toString() + 
-           '_${DateTime.now().microsecond}';
+    return '${DateTime.now().millisecondsSinceEpoch}_${DateTime.now().microsecond}';
   }
 
   /// Create a new message with auto-generated ID

@@ -26,7 +26,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
   }
 
   Future<void> _loadSettings() async {
-    final encryption = await _settingsRepo.getBoolSetting('encryptionEnabled');
+    final encryption = await _settingsRepo.isEncryptionEnabled();
     setState(() {
       _isEncryptionEnabled = encryption;
     });
@@ -64,9 +64,9 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
               value: _isEncryptionEnabled,
               onChanged: (value) async {
                 setState(() => _isEncryptionEnabled = value);
-                await _settingsRepo.setBoolSetting('encryptionEnabled', value);
+                await _settingsRepo.setEncryptionEnabled(value);
               },
-              activeColor: const Color(0xFF4ADE80),
+              activeThumbColor: const Color(0xFF4ADE80),
               activeTrackColor: const Color(0xFF166534),
               inactiveThumbColor: Colors.white54,
               inactiveTrackColor: const Color(0xFF2A2A2A),
@@ -80,8 +80,8 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
             icon: Icons.vpn_key_outlined,
             iconColor: const Color(0xFF4ADE80),
             title: 'Encryption Key',
-            subtitle: _isKeyVisible 
-                ? _encryptionService.getKeyFingerprint() 
+            subtitle: _isKeyVisible
+                ? _encryptionService.getKeyFingerprint()
                 : '•••••••••••••••••••••••••',
             trailing: IconButton(
               icon: Icon(
@@ -125,16 +125,17 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.red.withOpacity(0.1),
+              color: Colors.red.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.red.withOpacity(0.3)),
+              border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Row(
                   children: [
-                    Icon(Icons.warning_amber_rounded, color: Colors.red, size: 20),
+                    Icon(Icons.warning_amber_rounded,
+                        color: Colors.red, size: 20),
                     SizedBox(width: 8),
                     Text(
                       'Danger Zone',
@@ -147,16 +148,16 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Clear Data Button
                 _buildDangerButton(
                   icon: Icons.delete_outline,
                   label: 'Clear All Local Data',
                   onTap: _showClearDataDialog,
                 ),
-                
+
                 const SizedBox(height: 12),
-                
+
                 // Unpair Button
                 _buildDangerButton(
                   icon: Icons.link_off,
@@ -233,7 +234,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
     required VoidCallback onTap,
   }) {
     return Material(
-      color: Colors.red.withOpacity(0.2),
+      color: Colors.red.withValues(alpha: 0.2),
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: onTap,
@@ -265,7 +266,8 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF0F1A0F),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Clear All Data', style: TextStyle(color: Colors.white)),
+        title:
+            const Text('Clear All Data', style: TextStyle(color: Colors.white)),
         content: const Text(
           'This will delete all local messages, call logs, and settings. This action cannot be undone.',
           style: TextStyle(color: Colors.white70),
@@ -273,7 +275,8 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+            child:
+                const Text('Cancel', style: TextStyle(color: Colors.white54)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -284,13 +287,15 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                   content: const Text('All data cleared'),
                   backgroundColor: Colors.red,
                   behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
               );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
             ),
             child: const Text('Clear Data'),
           ),
@@ -305,15 +310,17 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF0F1A0F),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Unpair Device', style: TextStyle(color: Colors.white)),
+        title:
+            const Text('Unpair Device', style: TextStyle(color: Colors.white)),
         content: const Text(
-          'Are you sure you want to unpair? You will need to pair again to use Bridge Phone.',
+          'Are you sure you want to unpair? You will need to pair again to use Bridger.',
           style: TextStyle(color: Colors.white70),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+            child:
+                const Text('Cancel', style: TextStyle(color: Colors.white54)),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -321,14 +328,15 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
               await _settingsRepo.setPairedDeviceId(null);
               await _settingsRepo.setDevicePaired(false);
               _bleService.disconnect();
-              
+
               if (mounted) {
                 Navigator.of(context).popUntil((route) => route.isFirst);
               }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
             ),
             child: const Text('Unpair'),
           ),

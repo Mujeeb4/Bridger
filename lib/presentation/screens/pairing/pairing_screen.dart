@@ -22,16 +22,16 @@ class PairingScreen extends StatefulWidget {
 
 class _PairingScreenState extends State<PairingScreen> {
   final PairingService _pairingService = GetIt.I<PairingService>();
-  
+
   PairingState _state = PairingState.idle;
   PairingQRData? _qrData;
   String? _pairingCode;
   Duration? _remainingTime;
   Timer? _countdownTimer;
-  
+
   // iOS: toggle between scanner and manual entry
   bool _showManualEntry = false;
-  
+
   StreamSubscription? _stateSubscription;
 
   @override
@@ -43,7 +43,7 @@ class _PairingScreenState extends State<PairingScreen> {
         _onPaired();
       }
     });
-    
+
     _initialize();
   }
 
@@ -76,7 +76,7 @@ class _PairingScreenState extends State<PairingScreen> {
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       final remaining = _pairingService.getCodeRemainingTime();
       setState(() => _remainingTime = remaining);
-      
+
       if (remaining == null || remaining.inSeconds <= 0) {
         _countdownTimer?.cancel();
         _generatePairingCode();
@@ -95,9 +95,7 @@ class _PairingScreenState extends State<PairingScreen> {
   }
 
   void _onCodeEntered(String code) async {
-    // For manual entry, we need to know the device ID
-    // In real implementation, this would be discovered via BLE scan
-    final success = await _pairingService.enterPairingCode(code, 'manual-entry');
+    final success = await _pairingService.enterPairingCode(code);
     if (!success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Invalid code. Please try again.')),
@@ -107,14 +105,14 @@ class _PairingScreenState extends State<PairingScreen> {
 
   void _onPaired() {
     if (!mounted) return;
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Successfully paired!'),
         backgroundColor: Colors.green,
       ),
     );
-    
+
     // Navigate back or to home
     Navigator.of(context).pop(true);
   }
@@ -207,7 +205,7 @@ class _PairingScreenState extends State<PairingScreen> {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.1),
+              color: Colors.green.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -220,15 +218,15 @@ class _PairingScreenState extends State<PairingScreen> {
           Text(
             'Devices Paired!',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+                  fontWeight: FontWeight.bold,
+                ),
           ),
           const SizedBox(height: 8),
           Text(
             'Your devices are now connected',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
           ),
           const SizedBox(height: 32),
           FilledButton(
@@ -254,15 +252,15 @@ class _PairingScreenState extends State<PairingScreen> {
           Text(
             'Pairing Failed',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+                  fontWeight: FontWeight.bold,
+                ),
           ),
           const SizedBox(height: 8),
           Text(
             'Unable to pair devices. Please try again.',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
           ),
           const SizedBox(height: 32),
           FilledButton(
@@ -271,6 +269,7 @@ class _PairingScreenState extends State<PairingScreen> {
                 _generatePairingCode();
               } else {
                 setState(() {
+                  _state = PairingState.idle;
                   _showManualEntry = false;
                 });
               }
@@ -299,15 +298,44 @@ class _PairingScreenState extends State<PairingScreen> {
 
   Widget _buildIOSContent() {
     if (_showManualEntry) {
-      return CodeEntryWidget(
-        onSubmit: _onCodeEntered,
-        onCancel: () => setState(() => _showManualEntry = false),
+      return Column(
+        children: [
+          Expanded(
+            child: CodeEntryWidget(
+              onSubmit: _onCodeEntered,
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextButton.icon(
+            onPressed: () {
+              setState(() => _showManualEntry = false);
+            },
+            icon: const Icon(Icons.qr_code_scanner),
+            label: const Text('Scan QR Code Instead'),
+          ),
+        ],
       );
     }
 
-    return QRScannerWidget(
-      onScanned: _onQRScanned,
-      onCancel: () => setState(() => _showManualEntry = true),
+    return Column(
+      children: [
+        Expanded(
+          child: QRScannerWidget(
+            onScanned: _onQRScanned,
+            onCancel: () {
+              Navigator.of(context).pop();
+            },
+          ),
+        ),
+        const SizedBox(height: 16),
+        TextButton.icon(
+          onPressed: () {
+            setState(() => _showManualEntry = true);
+          },
+          icon: const Icon(Icons.keyboard),
+          label: const Text('Enter Code Manually'),
+        ),
+      ],
     );
   }
 }

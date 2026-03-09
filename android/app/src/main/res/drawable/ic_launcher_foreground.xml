@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Adaptive icon foreground layer (simple green circle with phone icon shape) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Green circle background centered in safe zone (18dp inset) -->
+    <path
+        android:fillColor="#166534"
+        android:pathData="M54,54m-36,0a36,36 0,1 1,72 0a36,36 0,1 1,-72 0"/>
+    
+    <!-- Phone icon -->
+    <path
+        android:fillColor="#4ADE80"
+        android:pathData="M42.5,38.5c0,-1.1 0.9,-2 2,-2h19c1.1,0 2,0.9 2,2v31c0,1.1 -0.9,2 -2,2h-19c-1.1,0 -2,-0.9 -2,-2v-31zM46.5,40.5h15v25h-15v-25zM54,68.5m-1.5,0a1.5,1.5 0,1 1,3 0a1.5,1.5 0,1 1,-3 0"/>
+</vector>

@@ -7,8 +7,7 @@ class CodeEntryWidget extends StatefulWidget {
   final VoidCallback? onCancel;
 
   const CodeEntryWidget({
-    super.key,
-    required this.onSubmit,
+    required this.onSubmit, super.key,
     this.onCancel,
   });
 
@@ -17,11 +16,10 @@ class CodeEntryWidget extends StatefulWidget {
 }
 
 class _CodeEntryWidgetState extends State<CodeEntryWidget> {
-  final List<TextEditingController> _controllers = 
+  final List<TextEditingController> _controllers =
       List.generate(6, (_) => TextEditingController());
-  final List<FocusNode> _focusNodes = 
-      List.generate(6, (_) => FocusNode());
-  
+  final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
+
   String _error = '';
 
   @override
@@ -37,16 +35,16 @@ class _CodeEntryWidgetState extends State<CodeEntryWidget> {
 
   void _onDigitChanged(int index, String value) {
     setState(() => _error = '');
-    
+
     if (value.isNotEmpty && index < 5) {
       _focusNodes[index + 1].requestFocus();
     }
-    
+
     _checkComplete();
   }
 
-  void _onKeyPressed(int index, RawKeyEvent event) {
-    if (event is RawKeyDownEvent &&
+  void _onKeyPressed(int index, KeyEvent event) {
+    if (event is KeyDownEvent &&
         event.logicalKey == LogicalKeyboardKey.backspace &&
         _controllers[index].text.isEmpty &&
         index > 0) {
@@ -104,27 +102,30 @@ class _CodeEntryWidgetState extends State<CodeEntryWidget> {
         const SizedBox(height: 40),
 
         // Code input fields
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(6, (index) {
-            return Row(
-              children: [
-                _buildDigitField(index),
-                if (index == 2)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Text(
-                      '-',
-                      style: theme.textTheme.headlineLarge?.copyWith(
-                        color: colorScheme.outline,
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(6, (index) {
+              return Row(
+                children: [
+                  _buildDigitField(index),
+                  if (index == 2)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Text(
+                        '-',
+                        style: theme.textTheme.headlineLarge?.copyWith(
+                          color: colorScheme.outline,
+                        ),
                       ),
-                    ),
-                  )
-                else if (index < 5)
-                  const SizedBox(width: 8),
-              ],
-            );
-          }),
+                    )
+                  else if (index < 5)
+                    const SizedBox(width: 8),
+                ],
+              );
+            }),
+          ),
         ),
         const SizedBox(height: 16),
 
@@ -175,9 +176,9 @@ class _CodeEntryWidgetState extends State<CodeEntryWidget> {
     return SizedBox(
       width: 48,
       height: 56,
-      child: RawKeyboardListener(
+      child: KeyboardListener(
         focusNode: FocusNode(),
-        onKey: (event) => _onKeyPressed(index, event),
+        onKeyEvent: (event) => _onKeyPressed(index, event),
         child: TextField(
           controller: _controllers[index],
           focusNode: _focusNodes[index],

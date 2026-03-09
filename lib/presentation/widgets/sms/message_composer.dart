@@ -6,8 +6,7 @@ class MessageComposer extends StatefulWidget {
   final bool isSending;
 
   const MessageComposer({
-    super.key,
-    required this.onSend,
+    required this.onSend, super.key,
     this.isSending = false,
   });
 
@@ -52,10 +51,10 @@ class _MessageComposerState extends State<MessageComposer> {
         top: 8,
         bottom: MediaQuery.of(context).padding.bottom + 8,
       ),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
+      decoration: const BoxDecoration(
+        color: Color(0xFF0F1A0F),
         border: Border(
-          top: BorderSide(color: Colors.grey[800]!, width: 0.5),
+          top: BorderSide(color: Color(0xFF1A2A1A), width: 0.5),
         ),
       ),
       child: Row(
@@ -63,7 +62,7 @@ class _MessageComposerState extends State<MessageComposer> {
           Expanded(
             child: Container(
               decoration: BoxDecoration(
-                color: const Color(0xFF2D2D2D),
+                color: const Color(0xFF1A2A1A),
                 borderRadius: BorderRadius.circular(24),
               ),
               child: Row(
@@ -96,7 +95,7 @@ class _MessageComposerState extends State<MessageComposer> {
             duration: const Duration(milliseconds: 200),
             child: Material(
               color: _hasText && !widget.isSending
-                  ? const Color(0xFF6C5CE7)
+                  ? const Color(0xFF166534)
                   : Colors.grey[700],
               shape: const CircleBorder(),
               child: InkWell(

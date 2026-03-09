@@ -15,11 +15,10 @@ class AppNotificationEntity extends Equatable {
     required this.id,
     required this.appName,
     required this.packageName,
-    this.title,
+    required this.timestamp, this.title,
     this.body,
     this.iconBase64,
     this.isRead = false,
-    required this.timestamp,
   });
 
   /// Get the display title (falls back to app name if no title)

@@ -1,4 +1,4 @@
-import 'dart:convert';
+
 
 /// SMS message model
 class SMSMessage {
@@ -12,11 +12,7 @@ class SMSMessage {
 
   SMSMessage({
     required this.id,
-    this.threadId,
-    required this.address,
-    required this.body,
-    required this.timestamp,
-    required this.type,
+    required this.address, required this.body, required this.timestamp, required this.type, this.threadId,
     this.isRead = false,
   });
 

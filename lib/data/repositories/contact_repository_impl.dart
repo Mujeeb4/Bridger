@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart';
 
-import '../../datasources/local/database.dart';
+import '../datasources/local/database.dart';
 import '../../../domain/entities/contact.dart';
 import '../../../domain/repositories/contact_repository.dart';
 
@@ -105,9 +105,12 @@ class ContactRepositoryImpl implements ContactRepository {
 
   @override
   Future<int> importFromDevice() async {
-    // This will be implemented with platform channels in a later phase
-    // when we integrate with the native contact providers
-    throw UnimplementedError('Contact import will be implemented in Phase 16');
+    // Contact import is handled by ContactSyncService
+    // This method delegates to the sync service which calls platform channels
+    // and uses this repository for saving contacts
+    throw UnsupportedError(
+      'Use ContactSyncService.syncContacts() instead for full sync functionality'
+    );
   }
 
   ContactEntity _mapToEntity(Contact contact) {

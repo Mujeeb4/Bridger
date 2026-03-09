@@ -20,13 +20,13 @@ class PairedDevice {
   });
 
   Map<String, dynamic> toJson() => {
-    'deviceId': deviceId,
-    'deviceName': deviceName,
-    'platform': platform,
-    'sharedKey': sharedKey,
-    'pairedAt': pairedAt.toIso8601String(),
-    'lastSeen': lastSeen?.toIso8601String(),
-  };
+        'deviceId': deviceId,
+        'deviceName': deviceName,
+        'platform': platform,
+        'sharedKey': sharedKey,
+        'pairedAt': pairedAt.toIso8601String(),
+        'lastSeen': lastSeen?.toIso8601String(),
+      };
 
   factory PairedDevice.fromJson(Map<String, dynamic> json) {
     return PairedDevice(
@@ -35,8 +35,8 @@ class PairedDevice {
       platform: json['platform'] as String,
       sharedKey: json['sharedKey'] as String,
       pairedAt: DateTime.parse(json['pairedAt'] as String),
-      lastSeen: json['lastSeen'] != null 
-          ? DateTime.parse(json['lastSeen'] as String) 
+      lastSeen: json['lastSeen'] != null
+          ? DateTime.parse(json['lastSeen'] as String)
           : null,
     );
   }
@@ -73,9 +73,9 @@ class PairingCode {
   });
 
   bool get isExpired => DateTime.now().isAfter(expiresAt);
-  
+
   DateTime get expiresAt => createdAt.add(validity);
-  
+
   Duration get remainingTime {
     final remaining = expiresAt.difference(DateTime.now());
     return remaining.isNegative ? Duration.zero : remaining;
@@ -92,10 +92,10 @@ class PairingCode {
   }
 
   Map<String, dynamic> toJson() => {
-    'code': code,
-    'createdAt': createdAt.toIso8601String(),
-    'validity': validity.inSeconds,
-  };
+        'code': code,
+        'createdAt': createdAt.toIso8601String(),
+        'validity': validity.inSeconds,
+      };
 
   factory PairingCode.fromJson(Map<String, dynamic> json) {
     return PairingCode(
@@ -113,6 +113,8 @@ class PairingQRData {
   final String pairingCode;
   final String publicKey; // For key exchange
   final DateTime timestamp;
+  final String bleServiceUuid; // BLE service UUID for scanning
+  final int wsPort; // WebSocket port for post-pairing communication
 
   PairingQRData({
     required this.deviceId,
@@ -120,6 +122,8 @@ class PairingQRData {
     required this.pairingCode,
     required this.publicKey,
     required this.timestamp,
+    this.bleServiceUuid = '0000180A-0000-1000-8000-00805F9B34FB',
+    this.wsPort = 8765,
   });
 
   /// Encode to JSON string for QR code
@@ -136,13 +140,15 @@ class PairingQRData {
   }
 
   Map<String, dynamic> toJson() => {
-    'v': 1, // Version for future compatibility
-    'id': deviceId,
-    'name': deviceName,
-    'code': pairingCode,
-    'key': publicKey,
-    'ts': timestamp.millisecondsSinceEpoch,
-  };
+        'v': 2, // Version 2 with BLE + WS info
+        'id': deviceId,
+        'name': deviceName,
+        'code': pairingCode,
+        'key': publicKey,
+        'ts': timestamp.millisecondsSinceEpoch,
+        'ble': bleServiceUuid,
+        'ws': wsPort,
+      };
 
   factory PairingQRData.fromJson(Map<String, dynamic> json) {
     return PairingQRData(
@@ -151,6 +157,9 @@ class PairingQRData {
       pairingCode: json['code'] as String,
       publicKey: json['key'] as String,
       timestamp: DateTime.fromMillisecondsSinceEpoch(json['ts'] as int),
+      bleServiceUuid:
+          json['ble'] as String? ?? '0000180A-0000-1000-8000-00805F9B34FB',
+      wsPort: json['ws'] as int? ?? 8765,
     );
   }
 }
@@ -172,12 +181,12 @@ class PairingRequest {
   });
 
   Map<String, dynamic> toJson() => {
-    'deviceId': deviceId,
-    'deviceName': deviceName,
-    'platform': platform,
-    'pairingCode': pairingCode,
-    'publicKey': publicKey,
-  };
+        'deviceId': deviceId,
+        'deviceName': deviceName,
+        'platform': platform,
+        'pairingCode': pairingCode,
+        'publicKey': publicKey,
+      };
 
   factory PairingRequest.fromJson(Map<String, dynamic> json) {
     return PairingRequest(
@@ -203,10 +212,10 @@ class PairingResponse {
   });
 
   Map<String, dynamic> toJson() => {
-    'success': success,
-    'errorMessage': errorMessage,
-    'sharedKey': sharedKey,
-  };
+        'success': success,
+        'errorMessage': errorMessage,
+        'sharedKey': sharedKey,
+      };
 
   factory PairingResponse.fromJson(Map<String, dynamic> json) {
     return PairingResponse(

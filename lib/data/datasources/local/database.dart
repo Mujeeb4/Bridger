@@ -246,12 +246,13 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<void> setSetting(String key, String value) async {
-    await into(settings).insertOnConflictUpdate(
+    await into(settings).insert(
       SettingsCompanion.insert(
         key: key,
         value: value,
         updatedAt: Value(DateTime.now()),
       ),
+      mode: InsertMode.insertOrReplace,
     );
   }
 

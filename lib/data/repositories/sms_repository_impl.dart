@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart';
 
-import '../../datasources/local/database.dart';
+import '../datasources/local/database.dart';
 import '../../../domain/entities/message.dart';
 import '../../../domain/entities/thread.dart';
 import '../../../domain/repositories/sms_repository.dart';

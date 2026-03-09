@@ -14,10 +14,10 @@ dependencies:
   flutter_blue_plus: ^1.32.0
   
   # WebSocket
-  web_socket_channel: ^2.4.0
+  web_socket_channel: ^3.0.0
   
   # WebRTC for audio
-  flutter_webrtc: ^0.10.6
+  flutter_webrtc: ^0.12.2
   
   # HTTP client
   dio: ^5.4.0
@@ -32,10 +32,7 @@ dependencies:
   flutter_local_notifications: ^17.0.1
   
   # Background tasks
-  workmanager: ^0.5.2
-  
-  # SMS handling (Android)
-  telephony: ^0.2.0
+  workmanager: ^0.9.0
   
   # Phone state (Android)
   phone_state: ^3.0.0
@@ -114,6 +111,8 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  integration_test:
+    sdk: flutter
   
   flutter_lints: ^3.0.1
   build_runner: ^2.4.8
@@ -121,6 +120,7 @@ dev_dependencies:
   injectable_generator: ^2.4.1
   freezed: ^2.4.7
   drift_dev: ^2.16.0
+  mockito: ^5.4.4
 
 flutter:
   uses-material-design: true

@@ -10,7 +10,9 @@ import android.util.Log
 class GattServerCallback(
     private val eventHandler: BLEEventHandler,
     private val onReadRequest: (BluetoothDevice, Int, BluetoothGattCharacteristic) -> ByteArray?,
-    private val onWriteRequest: (BluetoothDevice, BluetoothGattCharacteristic, ByteArray) -> Boolean
+    private val onWriteRequest: (BluetoothDevice, BluetoothGattCharacteristic, ByteArray) -> Boolean,
+    private val onServiceAddedCallback: ((Int, BluetoothGattService) -> Unit)? = null,
+    private val onAllDevicesDisconnected: (() -> Unit)? = null
 ) : BluetoothGattServerCallback() {
 
     companion object {
@@ -31,7 +33,8 @@ class GattServerCallback(
             BluetoothProfile.STATE_CONNECTED -> {
                 Log.i(TAG, "Device connected: ${device.address}")
                 connectedDevices.add(device)
-                eventHandler.onDeviceConnected(device.address, device.name)
+                val name = try { device.name } catch (_: SecurityException) { null }
+                eventHandler.onDeviceConnected(device.address, name)
                 
                 if (connectedDevices.size == 1) {
                     eventHandler.onStatusChanged(BLEConstants.Status.CONNECTED)
@@ -44,6 +47,8 @@ class GattServerCallback(
                 
                 if (connectedDevices.isEmpty()) {
                     eventHandler.onStatusChanged(BLEConstants.Status.ADVERTISING)
+                    // Trigger re-advertising so iOS can reconnect
+                    onAllDevicesDisconnected?.invoke()
                 }
             }
         }
@@ -188,6 +193,7 @@ class GattServerCallback(
             Log.e(TAG, "Failed to add service ${service.uuid}, status=$status")
             eventHandler.onError(status, "Failed to add service ${service.uuid}")
         }
+        onServiceAddedCallback?.invoke(status, service)
     }
 
     // ============================================================================

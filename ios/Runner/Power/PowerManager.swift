@@ -11,13 +11,18 @@ class PowerManager {
     
     private var isInBackground = false
     private var backgroundWorkItems: [String: DispatchWorkItem] = [:]
-    private var heartbeatWorkItem: DispatchWorkItem?
     
     /// Registered services that need pause/resume notifications
     private var services: [PowerManagedService] = []
     
     // Heartbeat interval (25s to avoid 30s disconnect timeout)
     private let heartbeatInterval: TimeInterval = 25.0
+    
+    // Background heartbeat timer — uses a background-safe dispatch source
+    private var heartbeatTimer: DispatchSourceTimer?
+    
+    // Background task for extended runtime
+    private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
     
     // MARK: - Initialization
     
@@ -65,6 +70,9 @@ class PowerManager {
         // Cancel all non-essential work items
         cancelAllNonEssentialWork()
         
+        // Begin a background task to keep heartbeat running
+        beginBackgroundTask()
+        
         // Start minimal heartbeat for BLE
         startMinimalHeartbeat()
     }
@@ -76,10 +84,29 @@ class PowerManager {
         // Stop minimal heartbeat
         stopMinimalHeartbeat()
         
+        // End background task
+        endBackgroundTask()
+        
         // Notify all services to resume
         for service in services {
             service.resumeFromBackground()
         }
+    }
+    
+    // MARK: - Background Task
+    
+    private func beginBackgroundTask() {
+        endBackgroundTask() // Clean up any prior task
+        backgroundTask = UIApplication.shared.beginBackgroundTask(withName: "BridgePhoneHeartbeat") { [weak self] in
+            // Expiration handler — OS is about to kill, clean up
+            self?.endBackgroundTask()
+        }
+    }
+    
+    private func endBackgroundTask() {
+        guard backgroundTask != .invalid else { return }
+        UIApplication.shared.endBackgroundTask(backgroundTask)
+        backgroundTask = .invalid
     }
     
     // MARK: - Work Item Management
@@ -117,24 +144,25 @@ class PowerManager {
     private func startMinimalHeartbeat() {
         stopMinimalHeartbeat()
         
-        heartbeatWorkItem = DispatchWorkItem { [weak self] in
+        // Use DispatchSourceTimer on a background queue — fires even when
+        // the main run loop is suspended in background mode.
+        let timer = DispatchSource.makeTimerSource(queue: DispatchQueue.global(qos: .utility))
+        timer.schedule(deadline: .now() + heartbeatInterval, repeating: heartbeatInterval, leeway: .seconds(2))
+        timer.setEventHandler { [weak self] in
             guard let self = self, self.isInBackground else { return }
             
             // Minimal BLE keepalive
-            BLECentralManager.shared.sendHeartbeat()
-            
-            // Reschedule
-            self.startMinimalHeartbeat()
+            DispatchQueue.main.async {
+                BLECentralManager.shared.sendHeartbeat()
+            }
         }
-        
-        if let workItem = heartbeatWorkItem {
-            DispatchQueue.main.asyncAfter(deadline: .now() + heartbeatInterval, execute: workItem)
-        }
+        timer.resume()
+        heartbeatTimer = timer
     }
     
     private func stopMinimalHeartbeat() {
-        heartbeatWorkItem?.cancel()
-        heartbeatWorkItem = nil
+        heartbeatTimer?.cancel()
+        heartbeatTimer = nil
     }
     
     // MARK: - State

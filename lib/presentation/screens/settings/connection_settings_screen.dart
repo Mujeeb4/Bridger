@@ -6,7 +6,8 @@ class ConnectionSettingsScreen extends StatefulWidget {
   const ConnectionSettingsScreen({super.key});
 
   @override
-  State<ConnectionSettingsScreen> createState() => _ConnectionSettingsScreenState();
+  State<ConnectionSettingsScreen> createState() =>
+      _ConnectionSettingsScreenState();
 }
 
 class _ConnectionSettingsScreenState extends State<ConnectionSettingsScreen> {
@@ -23,14 +24,14 @@ class _ConnectionSettingsScreenState extends State<ConnectionSettingsScreen> {
   }
 
   Future<void> _loadSettings() async {
-    final timeout = await _settingsRepo.getIntSetting('connectionTimeout', defaultValue: 30);
-    final attempts = await _settingsRepo.getIntSetting('reconnectAttempts', defaultValue: 5);
-    final battery = await _settingsRepo.getBoolSetting('batteryMode');
-    
+    final timeout = await _settingsRepo.getConnectionTimeout();
+    final attempts = await _settingsRepo.getReconnectAttempts();
+    final batteryMode = await _settingsRepo.getBatteryMode();
+
     setState(() {
       _connectionTimeout = timeout.toDouble();
       _reconnectAttempts = attempts;
-      _batteryMode = battery;
+      _batteryMode = batteryMode == 'battery_saver';
     });
   }
 
@@ -65,7 +66,7 @@ class _ConnectionSettingsScreenState extends State<ConnectionSettingsScreen> {
                 activeTrackColor: const Color(0xFF4ADE80),
                 inactiveTrackColor: const Color(0xFF2A3A2A),
                 thumbColor: const Color(0xFF4ADE80),
-                overlayColor: const Color(0xFF4ADE80).withOpacity(0.2),
+                overlayColor: const Color(0xFF4ADE80).withValues(alpha: 0.2),
               ),
               child: Slider(
                 value: _connectionTimeout,
@@ -74,7 +75,7 @@ class _ConnectionSettingsScreenState extends State<ConnectionSettingsScreen> {
                 divisions: 11,
                 onChanged: (value) async {
                   setState(() => _connectionTimeout = value);
-                  await _settingsRepo.setIntSetting('connectionTimeout', value.toInt());
+                  await _settingsRepo.setConnectionTimeout(value.toInt());
                 },
               ),
             ),
@@ -94,13 +95,15 @@ class _ConnectionSettingsScreenState extends State<ConnectionSettingsScreen> {
                   onTap: () async {
                     if (_reconnectAttempts > 1) {
                       setState(() => _reconnectAttempts--);
-                      await _settingsRepo.setIntSetting('reconnectAttempts', _reconnectAttempts);
+                      await _settingsRepo
+                          .setReconnectAttempts(_reconnectAttempts);
                     }
                   },
                 ),
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 24),
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   decoration: BoxDecoration(
                     color: const Color(0xFF1A2A1A),
                     borderRadius: BorderRadius.circular(12),
@@ -119,7 +122,8 @@ class _ConnectionSettingsScreenState extends State<ConnectionSettingsScreen> {
                   onTap: () async {
                     if (_reconnectAttempts < 20) {
                       setState(() => _reconnectAttempts++);
-                      await _settingsRepo.setIntSetting('reconnectAttempts', _reconnectAttempts);
+                      await _settingsRepo
+                          .setReconnectAttempts(_reconnectAttempts);
                     }
                   },
                 ),
@@ -143,7 +147,7 @@ class _ConnectionSettingsScreenState extends State<ConnectionSettingsScreen> {
                       isSelected: !_batteryMode,
                       onTap: () async {
                         setState(() => _batteryMode = false);
-                        await _settingsRepo.setBoolSetting('batteryMode', false);
+                        await _settingsRepo.setBatteryMode('performance');
                       },
                     ),
                   ),
@@ -154,7 +158,7 @@ class _ConnectionSettingsScreenState extends State<ConnectionSettingsScreen> {
                       isSelected: _batteryMode,
                       onTap: () async {
                         setState(() => _batteryMode = true);
-                        await _settingsRepo.setBoolSetting('batteryMode', true);
+                        await _settingsRepo.setBatteryMode('battery_saver');
                       },
                     ),
                   ),
@@ -169,7 +173,7 @@ class _ConnectionSettingsScreenState extends State<ConnectionSettingsScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFF1A2A1A).withOpacity(0.5),
+              color: const Color(0xFF1A2A1A).withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: const Color(0xFF2A3A2A)),
             ),

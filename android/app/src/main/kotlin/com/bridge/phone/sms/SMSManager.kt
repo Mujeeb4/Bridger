@@ -1,8 +1,13 @@
 package com.bridge.phone.sms
 
 import android.Manifest
+import android.app.Activity
+import android.app.PendingIntent
+import android.content.BroadcastReceiver
 import android.content.ContentResolver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.database.Cursor
 import android.net.Uri
@@ -174,7 +179,8 @@ class SMSManager(private val context: Context) {
     // ========================================================================
 
     /**
-     * Send an SMS message
+     * Send an SMS message with send confirmation via PendingIntent.
+     * Returns true only if the platform accepted the message for sending.
      */
     fun sendSMS(phoneNumber: String, message: String): Boolean {
         if (!hasSendPermission()) {
@@ -190,15 +196,43 @@ class SMSManager(private val context: Context) {
                 SmsManager.getDefault()
             }
 
+            val sentAction = "com.bridge.phone.SMS_SENT_${System.currentTimeMillis()}"
+            val sentIntent = PendingIntent.getBroadcast(
+                context, 0,
+                Intent(sentAction),
+                PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE
+            )
+
+            // Register a one-shot receiver to log send result
+            val sentReceiver = object : BroadcastReceiver() {
+                override fun onReceive(ctx: Context?, intent: Intent?) {
+                    when (resultCode) {
+                        Activity.RESULT_OK -> Log.d(TAG, "SMS sent successfully to $phoneNumber")
+                        SmsManager.RESULT_ERROR_GENERIC_FAILURE -> Log.e(TAG, "SMS send failed: generic failure")
+                        SmsManager.RESULT_ERROR_NO_SERVICE -> Log.e(TAG, "SMS send failed: no service")
+                        SmsManager.RESULT_ERROR_NULL_PDU -> Log.e(TAG, "SMS send failed: null PDU")
+                        SmsManager.RESULT_ERROR_RADIO_OFF -> Log.e(TAG, "SMS send failed: radio off")
+                        else -> Log.e(TAG, "SMS send failed: unknown error $resultCode")
+                    }
+                    try { context.unregisterReceiver(this) } catch (_: Exception) {}
+                }
+            }
+            context.registerReceiver(sentReceiver, IntentFilter(sentAction),
+                Context.RECEIVER_NOT_EXPORTED)
+
             // Split message if too long
             val parts = smsManager.divideMessage(message)
             if (parts.size > 1) {
-                smsManager.sendMultipartTextMessage(phoneNumber, null, parts, null, null)
+                val sentIntents = ArrayList<PendingIntent>()
+                for (i in parts.indices) {
+                    sentIntents.add(sentIntent)
+                }
+                smsManager.sendMultipartTextMessage(phoneNumber, null, parts, sentIntents, null)
             } else {
-                smsManager.sendTextMessage(phoneNumber, null, message, null, null)
+                smsManager.sendTextMessage(phoneNumber, null, message, sentIntent, null)
             }
 
-            Log.d(TAG, "SMS sent to $phoneNumber")
+            Log.d(TAG, "SMS queued for sending to $phoneNumber")
             true
         } catch (e: Exception) {
             Log.e(TAG, "Error sending SMS to $phoneNumber", e)

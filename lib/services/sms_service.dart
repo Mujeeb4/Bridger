@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:convert';
+
 import 'dart:io';
 
 import 'package:flutter/services.dart';
@@ -12,8 +12,10 @@ import '../data/models/websocket_models.dart';
 /// - Android: Read inbox, send SMS, receive incoming
 /// - iOS: Display synced messages, send via Android relay
 class SMSService {
-  static const MethodChannel _methodChannel = MethodChannel('com.bridge.phone/sms');
-  static const EventChannel _eventChannel = EventChannel('com.bridge.phone/sms_events');
+  static const MethodChannel _methodChannel =
+      MethodChannel('com.bridge.phone/sms');
+  static const EventChannel _eventChannel =
+      EventChannel('com.bridge.phone/sms_events');
 
   final CommunicationService? _communicationService;
 
@@ -39,8 +41,32 @@ class SMSService {
   bool get isAndroid => Platform.isAndroid;
   bool get isIOS => Platform.isIOS;
 
+  // Sync state stream
+  final _syncStateController = StreamController<bool>.broadcast();
+  Stream<bool> get syncStateStream => _syncStateController.stream;
+  bool _isSyncing = false;
+  bool get isSyncing => _isSyncing;
+
   SMSService({CommunicationService? communicationService})
       : _communicationService = communicationService;
+
+  void setSyncing(bool syncing) {
+    _isSyncing = syncing;
+    _syncStateController.add(syncing);
+  }
+
+  void updateThreadsFromSync(List<dynamic> data) {
+    try {
+      _threads = data
+          .map((e) => SMSThread.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
+      // Sort by timestamp descending
+      _threads.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+      _threadsController.add(_threads);
+    } catch (e) {
+      _errorController.add("Error parsing sync data: $e");
+    }
+  }
 
   // ============================================================================
   // Initialization
@@ -48,14 +74,16 @@ class SMSService {
 
   Future<void> initialize() async {
     _subscribeToEvents();
-    
+
     // Listen for messages from communication service (iOS)
     if (isIOS && _communicationService != null) {
-      _communicationService!.messageStream.listen((wsMessage) {
+      _communicationService.messageStream.listen((wsMessage) {
         if (wsMessage.type == MessageType.smsAlert) {
           final smsMessage = SMSMessage(
             id: 0,
-            address: wsMessage.payload['sender'] as String? ?? '',
+            address: wsMessage.payload['from'] as String? ??
+                wsMessage.payload['sender'] as String? ??
+                '',
             body: wsMessage.payload['body'] as String? ?? '',
             timestamp: wsMessage.timestamp,
             type: SMSType.inbox,
@@ -100,8 +128,47 @@ class SMSService {
 
   void _handleNewMessage(SMSMessage message) {
     _newMessageController.add(message);
-    // Refresh threads
-    loadThreads();
+
+    if (isAndroid) {
+      // On Android, loadThreads() reads from native inbox
+      loadThreads();
+    } else {
+      // On iOS, update the cached thread list directly since we can't read
+      // the Android inbox. Find the matching thread and update its snippet,
+      // or create a new thread entry if one doesn't exist.
+      final threadId = message.threadId ?? 0;
+      final existingIndex = _threads.indexWhere(
+        (t) => t.address == message.address || t.threadId == threadId,
+      );
+
+      if (existingIndex >= 0) {
+        final existing = _threads[existingIndex];
+        _threads[existingIndex] = SMSThread(
+          threadId: existing.threadId,
+          address: existing.address,
+          messageCount: existing.messageCount + 1,
+          snippet: message.body,
+          timestamp: message.timestamp,
+          contactName: existing.contactName,
+        );
+      } else {
+        _threads.insert(
+          0,
+          SMSThread(
+            threadId: threadId,
+            address: message.address,
+            messageCount: 1,
+            snippet: message.body,
+            timestamp: message.timestamp,
+            contactName: null,
+          ),
+        );
+      }
+
+      // Re-sort by timestamp descending and emit
+      _threads.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+      _threadsController.add(_threads);
+    }
   }
 
   Future<void> _forwardToIOS(SMSMessage message) async {
@@ -110,13 +177,15 @@ class SMSService {
     final wsMessage = WebSocketMessage.create(
       type: MessageType.smsAlert,
       payload: {
-        'sender': message.address,
+        'from': message.address,
+        'sender': message.address, // alias for WebSocket receivers
         'body': message.body,
+        'threadId': message.threadId ?? 0,
         'timestamp': message.timestamp.millisecondsSinceEpoch,
       },
     );
 
-    await _communicationService!.send(wsMessage);
+    await _communicationService.send(wsMessage);
   }
 
   // ============================================================================
@@ -128,8 +197,9 @@ class SMSService {
     if (!isAndroid) return _threads;
 
     try {
-      final result = await _methodChannel.invokeMethod<List<dynamic>>('getConversations');
-      
+      final result =
+          await _methodChannel.invokeMethod<List<dynamic>>('getConversations');
+
       if (result != null) {
         _threads = result
             .cast<Map<dynamic, dynamic>>()
@@ -149,7 +219,8 @@ class SMSService {
     if (!isAndroid) return _messagesByThread[threadId] ?? [];
 
     try {
-      final result = await _methodChannel.invokeMethod<List<dynamic>>('getMessages', {
+      final result =
+          await _methodChannel.invokeMethod<List<dynamic>>('getMessages', {
         'threadId': threadId,
         'limit': limit,
       });
@@ -174,7 +245,8 @@ class SMSService {
     if (!isAndroid) return [];
 
     try {
-      final result = await _methodChannel.invokeMethod<List<dynamic>>('getRecentMessages', {
+      final result = await _methodChannel
+          .invokeMethod<List<dynamic>>('getRecentMessages', {
         'count': count,
       });
 
@@ -210,9 +282,10 @@ class SMSService {
   Future<bool> _sendSMSAndroid(String phoneNumber, String message) async {
     try {
       final success = await _methodChannel.invokeMethod<bool>('sendSMS', {
-        'phoneNumber': phoneNumber,
-        'message': message,
-      }) ?? false;
+            'phoneNumber': phoneNumber,
+            'message': message,
+          }) ??
+          false;
 
       if (success) {
         // Refresh threads
@@ -226,7 +299,7 @@ class SMSService {
   }
 
   Future<bool> _sendSMSViaiOS(String phoneNumber, String message) async {
-    if (_communicationService == null || !_communicationService!.isConnected) {
+    if (_communicationService == null || !_communicationService.isConnected) {
       _errorController.add('Not connected to Android device');
       return false;
     }
@@ -240,31 +313,57 @@ class SMSService {
       },
     );
 
-    return await _communicationService!.send(wsMessage);
+    return await _communicationService.send(wsMessage);
   }
 
   // ============================================================================
   // Sync
   // ============================================================================
 
-  /// Sync messages to iOS
+  // Track last sync timestamp to avoid resending the same messages
+  int _lastSyncTimestamp = 0;
+
+  /// Sync messages to iOS (incremental — only messages newer than last sync)
   Future<void> syncToIOS() async {
     if (!isAndroid || _communicationService == null) return;
 
     final messages = await getRecentMessages(count: 50);
-    
-    for (final message in messages) {
+
+    // Filter to only messages after last sync
+    final newMessages = messages
+        .where(
+          (m) => m.timestamp.millisecondsSinceEpoch > _lastSyncTimestamp,
+        )
+        .toList();
+
+    if (newMessages.isEmpty) return;
+
+    for (final message in newMessages) {
+      // Use same payload format as _forwardToIOS for consistency
       final wsMessage = WebSocketMessage.create(
         type: MessageType.smsAlert,
-        payload: message.toJson(),
+        payload: {
+          'from': message.address,
+          'sender': message.address,
+          'body': message.body,
+          'threadId': message.threadId ?? 0,
+          'timestamp': message.timestamp.millisecondsSinceEpoch,
+          'isSync': true, // Flag so iOS can distinguish bulk sync from live
+        },
       );
-      await _communicationService!.send(wsMessage);
+      await _communicationService.send(wsMessage);
     }
+
+    // Update watermark
+    _lastSyncTimestamp = newMessages
+        .map((m) => m.timestamp.millisecondsSinceEpoch)
+        .reduce((a, b) => a > b ? a : b);
   }
 
   void dispose() {
     _newMessageController.close();
     _threadsController.close();
     _errorController.close();
+    _syncStateController.close();
   }
 }

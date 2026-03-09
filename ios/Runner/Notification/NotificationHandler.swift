@@ -61,9 +61,25 @@ extension NotificationHandler: UNUserNotificationCenterDelegate {
         completionHandler([.banner, .sound, .list])
     }
     
-    // Handle notification tap
+    // Handle notification tap — post to NotificationCenter so Flutter can navigate
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
-        // Handle action here if needed
+        let userInfo = response.notification.request.content.userInfo
+        let packageName = userInfo["packageName"] as? String ?? ""
+        let appName = userInfo["appName"] as? String ?? ""
+        let identifier = response.notification.request.identifier
+        
+        // Post notification for AppDelegate to forward to Flutter
+        NotificationCenter.default.post(
+            name: NSNotification.Name("BridgerNotificationTapped"),
+            object: nil,
+            userInfo: [
+                "id": identifier,
+                "packageName": packageName,
+                "appName": appName,
+                "actionIdentifier": response.actionIdentifier,
+            ]
+        )
+        
         completionHandler()
     }
 }

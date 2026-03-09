@@ -21,10 +21,8 @@ class CallLogEntity extends Equatable {
   const CallLogEntity({
     required this.id,
     required this.phoneNumber,
-    this.contactName,
-    required this.callType,
+    required this.callType, required this.timestamp, this.contactName,
     this.duration = 0,
-    required this.timestamp,
     this.isNew = true,
   });
 
@@ -45,7 +43,7 @@ class CallLogEntity extends Equatable {
     if (hours > 0) {
       return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
     }
-    return '${minutes}:${seconds.toString().padLeft(2, '0')}';
+    return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 
   /// Convert string to CallType enum

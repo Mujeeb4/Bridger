@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Backup Rules for Android 11 and below (API <31).
+    Controls what data is included in Auto Backup.
+    
+    Only include app preferences and databases.
+    Everything else (files, external storage, etc.) is excluded by only 
+    specifying include rules (implicit deny all).
+-->
+<full-backup-content>
+    <include domain="sharedpref" path="." />
+    <include domain="database" path="." />
+</full-backup-content>

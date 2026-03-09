@@ -2,43 +2,43 @@ import Foundation
 import CoreBluetooth
 
 /// BLE Constants matching Android and Flutter
-/// These UUIDs define the GATT services and characteristics for Bridge Phone
+/// These UUIDs define the GATT services and characteristics for Bridger
 struct BLEConstants {
     
     // MARK: - Service UUIDs
     
     /// Control Service - Commands and status
-    static let serviceControlUUID = CBUUID(string: "0000180A-0000-1000-8000-00805F9B34FB")
+    static let serviceControlUUID = CBUUID(string: "4836180A-5e34-45c5-9252-710471c676af")
     
     /// Notification Service - Real-time SMS/Call/App alerts
-    static let serviceNotificationUUID = CBUUID(string: "0000180B-0000-1000-8000-00805F9B34FB")
+    static let serviceNotificationUUID = CBUUID(string: "4836180B-5e34-45c5-9252-710471c676af")
     
     /// Data Service - Bulk data transfer
-    static let serviceDataUUID = CBUUID(string: "0000180C-0000-1000-8000-00805F9B34FB")
+    static let serviceDataUUID = CBUUID(string: "4836180C-5e34-45c5-9252-710471c676af")
     
     // MARK: - Characteristic UUIDs - Control Service
     
     /// Command characteristic - Write only, send commands to Android
-    static let charCommandUUID = CBUUID(string: "00002A00-0000-1000-8000-00805F9B34FB")
+    static let charCommandUUID = CBUUID(string: "48362A00-5e34-45c5-9252-710471c676af")
     
     /// Status characteristic - Read/Notify, device/connection status
-    static let charStatusUUID = CBUUID(string: "00002A01-0000-1000-8000-00805F9B34FB")
+    static let charStatusUUID = CBUUID(string: "48362A01-5e34-45c5-9252-710471c676af")
     
     // MARK: - Characteristic UUIDs - Notification Service
     
     /// SMS Alert characteristic - Notify, receive SMS alerts
-    static let charSmsAlertUUID = CBUUID(string: "00002A10-0000-1000-8000-00805F9B34FB")
+    static let charSmsAlertUUID = CBUUID(string: "48362A10-5e34-45c5-9252-710471c676af")
     
     /// Call Alert characteristic - Notify, receive call status
-    static let charCallAlertUUID = CBUUID(string: "00002A11-0000-1000-8000-00805F9B34FB")
+    static let charCallAlertUUID = CBUUID(string: "48362A11-5e34-45c5-9252-710471c676af")
     
     /// App Notification characteristic - Notify, receive app notifications
-    static let charAppNotificationUUID = CBUUID(string: "00002A12-0000-1000-8000-00805F9B34FB")
+    static let charAppNotificationUUID = CBUUID(string: "48362A12-5e34-45c5-9252-710471c676af")
     
     // MARK: - Characteristic UUIDs - Data Service
     
     /// Bulk Transfer characteristic - Read/Write/Notify for large data
-    static let charBulkTransferUUID = CBUUID(string: "00002A20-0000-1000-8000-00805F9B34FB")
+    static let charBulkTransferUUID = CBUUID(string: "48362A20-5e34-45c5-9252-710471c676af")
     
     // MARK: - All Service UUIDs for scanning
     
@@ -50,7 +50,7 @@ struct BLEConstants {
     
     // MARK: - Target Device Name
     
-    static let targetDeviceName = "Bridge Phone"
+    static let targetDeviceName = "Bridger"
     
     // MARK: - Connection State
     
@@ -78,6 +78,8 @@ struct BLEConstants {
         static let startHotspot = "START_HOTSPOT"
         static let stopHotspot = "STOP_HOTSPOT"
         static let ping = "PING"
+        static let pairingRequest = "PAIRING_REQUEST"
+        static let pairingResponse = "PAIRING_RESPONSE"
     }
     
     // MARK: - Notification Types (from Android)

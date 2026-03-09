@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart';
 
-import '../../datasources/local/database.dart';
+import '../datasources/local/database.dart';
 import '../../../domain/entities/app_notification.dart';
 import '../../../domain/repositories/notification_repository.dart';
 

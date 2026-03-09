@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart';
 
-import '../../datasources/local/database.dart';
+import '../datasources/local/database.dart';
 import '../../../domain/entities/call_log.dart';
 import '../../../domain/repositories/call_repository.dart';
 

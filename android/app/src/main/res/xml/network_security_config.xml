@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Network Security Configuration for Bridger.
+    
+    Disables cleartext (HTTP) traffic in release builds.
+    Only localhost is allowed for cleartext (needed for Flutter DevTools / debug).
+    All other traffic must use HTTPS/TLS.
+-->
+<network-security-config>
+    <!-- Disallow cleartext for all domains by default -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+    
+    <!-- Allow cleartext only for localhost (WebSocket server on same device) -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">127.0.0.1</domain>
+        <domain includeSubdomains="false">localhost</domain>
+        <domain includeSubdomains="false">10.0.2.2</domain>
+    </domain-config>
+</network-security-config>

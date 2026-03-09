@@ -19,10 +19,12 @@ import com.bridge.phone.call.CallManager
 import com.bridge.phone.call.PhoneStateReceiver
 import com.bridge.phone.call.AudioStreamManager
 import com.bridge.phone.notification.BridgerNotificationListenerService
+import com.bridge.phone.contacts.ContactsManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.util.Log
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.bridge.phone.services.BridgeForegroundService
 import java.net.NetworkInterface
@@ -45,6 +47,7 @@ class MainActivity: FlutterActivity(), BLEEventHandler {
         private const val EVENT_CHANNEL_NOTIFICATION = "com.bridge.phone/notification_events"
         private const val CHANNEL_AUDIO = "com.bridge.phone/audio"
         private const val EVENT_CHANNEL_AUDIO = "com.bridge.phone/audio_events"
+        private const val CHANNEL_CONTACTS = "com.bridge.phone/contacts"
     }
 
     private var bleManager: BLEPeripheralManager? = null
@@ -63,13 +66,39 @@ class MainActivity: FlutterActivity(), BLEEventHandler {
     private var audioEventSink: EventChannel.EventSink? = null
     private var notificationBroadcastReceiver: BroadcastReceiver? = null
     private var audioStreamManager: AudioStreamManager? = null
+    private var contactsManager: ContactsManager? = null
     private val mainHandler = Handler(Looper.getMainLooper())
+    private var bluetoothStateReceiver: BroadcastReceiver? = null
+    // Track whether advertising was requested so we can auto-start when BT turns on
+    private var advertisingRequested = false
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         
         // Initialize BLE Manager
         bleManager = BLEPeripheralManager(this, this)
+        
+        // Listen for Bluetooth state changes so we can auto-init+advertise when BT turns on
+        bluetoothStateReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                if (intent?.action == android.bluetooth.BluetoothAdapter.ACTION_STATE_CHANGED) {
+                    val state = intent.getIntExtra(android.bluetooth.BluetoothAdapter.EXTRA_STATE, -1)
+                    if (state == android.bluetooth.BluetoothAdapter.STATE_ON) {
+                        Log.i("MainActivity", "Bluetooth turned ON — auto-initializing BLE")
+                        mainHandler.postDelayed({
+                            if (bleManager?.isInitialized() != true) {
+                                bleManager?.initialize()
+                            }
+                            if (advertisingRequested && bleManager?.isAdvertising() != true) {
+                                bleManager?.startAdvertising()
+                            }
+                        }, 1000) // Small delay for BT stack to fully settle
+                    }
+                }
+            }
+        }
+        val btFilter = IntentFilter(android.bluetooth.BluetoothAdapter.ACTION_STATE_CHANGED)
+        registerReceiver(bluetoothStateReceiver, btFilter)
         
         // Initialize Hotspot Manager
         hotspotManager = HotspotManager(this)
@@ -125,6 +154,22 @@ class MainActivity: FlutterActivity(), BLEEventHandler {
                         result.success(success)
                     }
                     "startAdvertising" -> {
+                        advertisingRequested = true
+                        // Auto-initialize if not yet initialized (e.g. Bluetooth was off at startup)
+                        if (bleManager?.isInitialized() != true) {
+                            val initOk = bleManager?.initialize() ?: false
+                            if (!initOk) {
+                                // BT adapter may still be settling — retry after a short delay
+                                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                                    if (bleManager?.isInitialized() != true) {
+                                        bleManager?.initialize()
+                                    }
+                                    bleManager?.startAdvertising()
+                                }, 2000)
+                                result.success(null)
+                                return@setMethodCallHandler
+                            }
+                        }
                         bleManager?.startAdvertising()
                         result.success(null)
                     }
@@ -177,6 +222,15 @@ class MainActivity: FlutterActivity(), BLEEventHandler {
                             result.error("INVALID_ARGUMENT", "data is required", null)
                         }
                     }
+                    "sendStatusUpdate" -> {
+                        val data = call.argument<String>("data")
+                        if (data != null) {
+                            bleManager?.sendStatusUpdate(data)
+                            result.success(true)
+                        } else {
+                            result.error("INVALID_ARGUMENT", "data is required", null)
+                        }
+                    }
                     "shutdown" -> {
                         bleManager?.shutdown()
                         result.success(null)
@@ -210,9 +264,33 @@ class MainActivity: FlutterActivity(), BLEEventHandler {
                         result.success(hotspotManager?.isSupported() ?: false)
                     }
                     "startHotspot" -> {
+                        val pendingResult = result
+                        val originalCallback = hotspotCallback
+
+                        hotspotManager?.setCallback(object : HotspotManager.HotspotCallback {
+                            override fun onHotspotStarted(ssid: String, password: String) {
+                                hotspotManager?.setCallback(originalCallback)
+                                pendingResult.success(mapOf(
+                                    "ssid" to ssid,
+                                    "password" to password
+                                ))
+                                sendHotspotEvent("started", mapOf("ssid" to ssid, "password" to password))
+                            }
+
+                            override fun onHotspotStopped() {
+                                hotspotManager?.setCallback(originalCallback)
+                                pendingResult.success(null)
+                                sendHotspotEvent("stopped", emptyMap())
+                            }
+
+                            override fun onError(message: String) {
+                                hotspotManager?.setCallback(originalCallback)
+                                pendingResult.error("HOTSPOT_ERROR", message, null)
+                                sendHotspotEvent("error", mapOf("message" to message))
+                            }
+                        })
+
                         hotspotManager?.startHotspot()
-                        // Result will be sent via callback
-                        result.success(null)
                     }
                     "stopHotspot" -> {
                         hotspotManager?.stopHotspot()
@@ -297,6 +375,15 @@ class MainActivity: FlutterActivity(), BLEEventHandler {
                     "isRunning" -> {
                         result.success(webSocketServer?.isRunning() ?: false)
                     }
+                    "broadcastBinary" -> {
+                        val data = call.argument<ByteArray>("data")
+                        if (data != null) {
+                            webSocketServer?.broadcastBinary(data)
+                            result.success(true)
+                        } else {
+                            result.error("INVALID_ARGUMENT", "data required", null)
+                        }
+                    }
                     else -> {
                         result.notImplemented()
                     }
@@ -329,6 +416,14 @@ class MainActivity: FlutterActivity(), BLEEventHandler {
                     "timestamp" to timestamp
                 ))
             }
+        }
+        // Register at runtime so THIS instance (with listener) receives broadcasts
+        val smsFilter = IntentFilter("android.provider.Telephony.SMS_RECEIVED")
+        smsFilter.priority = IntentFilter.SYSTEM_HIGH_PRIORITY
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(smsReceiver, smsFilter, Context.RECEIVER_EXPORTED)
+        } else {
+            registerReceiver(smsReceiver, smsFilter)
         }
         
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL_SMS)
@@ -406,6 +501,16 @@ class MainActivity: FlutterActivity(), BLEEventHandler {
                 sendCallEvent("missedCall", mapOf("phoneNumber" to phoneNumber))
             }
         }
+        // Register at runtime so THIS instance (with listener) receives broadcasts
+        val phoneFilter = IntentFilter().apply {
+            addAction("android.intent.action.PHONE_STATE")
+            addAction("android.intent.action.NEW_OUTGOING_CALL")
+        }
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(phoneStateReceiver, phoneFilter, Context.RECEIVER_EXPORTED)
+        } else {
+            registerReceiver(phoneStateReceiver, phoneFilter)
+        }
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL_CALL)
             .setMethodCallHandler { call, result ->
@@ -432,6 +537,15 @@ class MainActivity: FlutterActivity(), BLEEventHandler {
                         val muted = call.argument<Boolean>("muted") ?: false
                         callManager?.setMicMuted(muted)
                         result.success(null)
+                    }
+                    "makeCall" -> {
+                        val phoneNumber = call.argument<String>("phoneNumber")
+                        if (phoneNumber != null) {
+                            val success = callManager?.makeCall(phoneNumber) ?: false
+                            result.success(success)
+                        } else {
+                            result.error("INVALID_ARGUMENT", "phoneNumber is required", null)
+                        }
                     }
                     else -> {
                         result.notImplemented()
@@ -462,6 +576,7 @@ class MainActivity: FlutterActivity(), BLEEventHandler {
                 when (intent.action) {
                     BridgerNotificationListenerService.ACTION_NOTIFICATION_POSTED -> {
                         val packageName = intent.getStringExtra("packageName") ?: ""
+                        val appName = intent.getStringExtra("appName") ?: packageName
                         val title = intent.getStringExtra("title") ?: ""
                         val text = intent.getStringExtra("text") ?: ""
                         val id = intent.getIntExtra("id", 0)
@@ -469,6 +584,7 @@ class MainActivity: FlutterActivity(), BLEEventHandler {
                         
                         sendNotificationEvent("notificationPosted", mapOf(
                             "packageName" to packageName,
+                            "appName" to appName,
                             "title" to title,
                             "text" to text,
                             "id" to id,
@@ -529,7 +645,10 @@ class MainActivity: FlutterActivity(), BLEEventHandler {
         // ====================================================================
         audioStreamManager = AudioStreamManager(object : AudioStreamManager.AudioStreamListener {
             override fun onAudioDataCaptured(data: ByteArray) {
-                // Send raw bytes to Flutter via EventChannel
+                // Send audio directly to iOS via WebSocket (native path, bypasses Flutter)
+                sendAudioNatively(data)
+                
+                // Also send to Flutter EventSink for monitoring/UI (non-critical)
                 mainHandler.post {
                     audioEventSink?.success(data)
                 }
@@ -556,6 +675,19 @@ class MainActivity: FlutterActivity(), BLEEventHandler {
                             result.error("INVALID_ARGUMENT", "Audio data is null", null)
                         }
                     }
+                    "setEncryptionKey" -> {
+                        val keyBytes = call.arguments as? ByteArray
+                        if (keyBytes != null && keyBytes.size == 32) {
+                            setAudioEncryptionKey(keyBytes)
+                            result.success(null)
+                        } else {
+                            result.error("INVALID_KEY", "Encryption key must be 32 bytes", null)
+                        }
+                    }
+                    "clearEncryptionKey" -> {
+                        clearAudioEncryptionKey()
+                        result.success(null)
+                    }
                     else -> result.notImplemented()
                 }
             }
@@ -572,6 +704,47 @@ class MainActivity: FlutterActivity(), BLEEventHandler {
                     audioEventSink = null
                 }
             })
+
+        // ====================================================================
+        // Contacts Channel
+        // ====================================================================
+        contactsManager = ContactsManager(this)
+        
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL_CONTACTS)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "getContacts" -> {
+                        try {
+                            val contacts = contactsManager?.getContacts() ?: emptyList()
+                            result.success(contacts)
+                        } catch (e: Exception) {
+                            result.error("CONTACTS_ERROR", e.message, null)
+                        }
+                    }
+                    "getContactCount" -> {
+                        try {
+                            val count = contactsManager?.getContactCount() ?: 0
+                            result.success(count)
+                        } catch (e: Exception) {
+                            result.error("CONTACTS_ERROR", e.message, null)
+                        }
+                    }
+                    "getContactByPhoneNumber" -> {
+                        val phoneNumber = call.argument<String>("phoneNumber")
+                        if (phoneNumber != null) {
+                            try {
+                                val contact = contactsManager?.getContactByPhoneNumber(phoneNumber)
+                                result.success(contact)
+                            } catch (e: Exception) {
+                                result.error("CONTACTS_ERROR", e.message, null)
+                            }
+                        } else {
+                            result.error("INVALID_ARGUMENT", "phoneNumber required", null)
+                        }
+                    }
+                    else -> result.notImplemented()
+                }
+            }
     }
 
     override fun onDestroy() {
@@ -581,6 +754,11 @@ class MainActivity: FlutterActivity(), BLEEventHandler {
         if (notificationBroadcastReceiver != null) {
             LocalBroadcastManager.getInstance(this).unregisterReceiver(notificationBroadcastReceiver!!)
         }
+        // Unregister Bluetooth state receiver
+        try { bluetoothStateReceiver?.let { unregisterReceiver(it) } } catch (_: Exception) {}
+        // Unregister runtime broadcast receivers
+        try { smsReceiver?.let { unregisterReceiver(it) } } catch (_: Exception) {}
+        try { phoneStateReceiver?.let { unregisterReceiver(it) } } catch (_: Exception) {}
         audioStreamManager?.stopStreaming()
         super.onDestroy()
     }
@@ -705,6 +883,21 @@ class MainActivity: FlutterActivity(), BLEEventHandler {
             ))
         }
 
+        override fun onBinaryMessageReceived(clientId: String, data: ByteArray) {
+            // Check for audio protocol (0x01 prefix) — route directly to native audio
+            // engine for minimum latency, bypassing Flutter entirely
+            if (data.isNotEmpty() && data[0] == 0x01.toByte()) {
+                val audioPayload = data.copyOfRange(1, data.size)
+                handleIncomingAudioNatively(audioPayload)
+            } else {
+                // Forward non-audio binary data to Flutter
+                sendWebSocketEvent("binaryMessageReceived", mapOf(
+                    "clientId" to clientId,
+                    "data" to data
+                ))
+            }
+        }
+
         override fun onError(message: String) {
             sendWebSocketEvent("error", mapOf(
                 "message" to message
@@ -719,6 +912,113 @@ class MainActivity: FlutterActivity(), BLEEventHandler {
                 "data" to data,
                 "timestamp" to System.currentTimeMillis()
             ))
+        }
+    }
+
+    // ========================================================================
+    // Native Audio Path (bypasses Flutter for minimum latency)
+    // ========================================================================
+
+    private var audioEncryptionKey: ByteArray? = null
+
+    /** Set the AES-256 encryption key for audio (called after pairing) */
+    fun setAudioEncryptionKey(key: ByteArray) {
+        if (key.size != 32) {
+            Log.w("MainActivity", "Invalid audio encryption key size: ${key.size}")
+            return
+        }
+        audioEncryptionKey = key
+        Log.i("MainActivity", "Audio encryption key set (${key.size} bytes)")
+    }
+
+    fun clearAudioEncryptionKey() {
+        audioEncryptionKey = null
+    }
+
+    /**
+     * Handle incoming audio from iOS via WebSocket — route directly to native
+     * AudioStreamManager without passing through Flutter Dart.
+     * Payload format: [encryptedFlag (1 byte)] [audio data]
+     *   encryptedFlag 0x01 = AES-256-GCM encrypted, 0x00 = raw PCM
+     */
+    private fun handleIncomingAudioNatively(payload: ByteArray) {
+        if (payload.isEmpty()) return
+
+        val encryptedFlag = payload[0]
+        val audioData = payload.copyOfRange(1, payload.size)
+
+        val pcmData = if (encryptedFlag == 0x01.toByte() && audioEncryptionKey != null) {
+            decryptAudioChunk(audioData, audioEncryptionKey!!) ?: return
+        } else {
+            audioData
+        }
+
+        // Feed directly to native audio playback
+        audioStreamManager?.playAudioChunk(pcmData)
+    }
+
+    /**
+     * Send audio from native Android mic capture directly to iOS via WebSocket.
+     * Called from AudioStreamManager callback. Bypasses Flutter Dart entirely.
+     * Packet format: [0x01 protocol] [encryptedFlag] [audio data]
+     */
+    private fun sendAudioNatively(pcmData: ByteArray) {
+        val key = audioEncryptionKey
+
+        val payload: ByteArray
+        if (key != null) {
+            val encrypted = encryptAudioChunk(pcmData, key) ?: return
+            // [0x01] [0x01 = encrypted] [encrypted data]
+            payload = ByteArray(2 + encrypted.size)
+            payload[0] = 0x01
+            payload[1] = 0x01
+            System.arraycopy(encrypted, 0, payload, 2, encrypted.size)
+        } else {
+            // [0x01] [0x00 = unencrypted] [PCM data]
+            payload = ByteArray(2 + pcmData.size)
+            payload[0] = 0x01
+            payload[1] = 0x00
+            System.arraycopy(pcmData, 0, payload, 2, pcmData.size)
+        }
+
+        webSocketServer?.broadcastBinary(payload)
+    }
+
+    // ========================================================================
+    // AES-256-GCM Audio Encryption (Android)
+    // ========================================================================
+
+    private fun encryptAudioChunk(plaintext: ByteArray, key: ByteArray): ByteArray? {
+        return try {
+            val cipher = javax.crypto.Cipher.getInstance("AES/GCM/NoPadding")
+            val secretKey = javax.crypto.spec.SecretKeySpec(key, "AES")
+            cipher.init(javax.crypto.Cipher.ENCRYPT_MODE, secretKey)
+            val iv = cipher.iv // GCM generates a 12-byte IV automatically
+            val ciphertext = cipher.doFinal(plaintext)
+            // Output: [12-byte IV] [ciphertext + 16-byte tag (appended by GCM)]
+            val result = ByteArray(iv.size + ciphertext.size)
+            System.arraycopy(iv, 0, result, 0, iv.size)
+            System.arraycopy(ciphertext, 0, result, iv.size, ciphertext.size)
+            result
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Audio encrypt error: ${e.message}")
+            null
+        }
+    }
+
+    private fun decryptAudioChunk(encrypted: ByteArray, key: ByteArray): ByteArray? {
+        return try {
+            if (encrypted.size < 28) return null // 12 IV + 16 tag minimum
+            val iv = encrypted.copyOfRange(0, 12)
+            val ciphertext = encrypted.copyOfRange(12, encrypted.size)
+            val cipher = javax.crypto.Cipher.getInstance("AES/GCM/NoPadding")
+            val secretKey = javax.crypto.spec.SecretKeySpec(key, "AES")
+            val spec = javax.crypto.spec.GCMParameterSpec(128, iv)
+            cipher.init(javax.crypto.Cipher.DECRYPT_MODE, secretKey, spec)
+            cipher.doFinal(ciphertext)
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Audio decrypt error: ${e.message}")
+            null
         }
     }
 

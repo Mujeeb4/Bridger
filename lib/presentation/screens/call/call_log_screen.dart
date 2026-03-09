@@ -6,7 +6,10 @@ import '../../../core/di/injection.dart';
 
 /// Call log/history screen
 class CallLogScreen extends StatefulWidget {
-  const CallLogScreen({super.key});
+  /// When true, the screen is embedded in the HomeScreen tab (no own Scaffold).
+  final bool embedded;
+
+  const CallLogScreen({super.key, this.embedded = false});
 
   @override
   State<CallLogScreen> createState() => _CallLogScreenState();
@@ -14,7 +17,7 @@ class CallLogScreen extends StatefulWidget {
 
 class _CallLogScreenState extends State<CallLogScreen> {
   late final CallService _callService;
-  
+
   List<CallLogEntry> _callLog = [];
   bool _isLoading = true;
   String? _error;
@@ -24,7 +27,7 @@ class _CallLogScreenState extends State<CallLogScreen> {
     super.initState();
     _callService = getIt<CallService>();
     _loadCallLog();
-    
+
     // Listen for updates
     _callService.callLogStream.listen((entries) {
       if (mounted) {
@@ -59,10 +62,40 @@ class _CallLogScreenState extends State<CallLogScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.embedded) {
+      // Embedded mode — body only, parent provides AppBar
+      return Container(
+        color: const Color(0xFF0A0F0A),
+        child: Column(
+          children: [
+            // Inline header row
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 8, 4),
+              child: Row(
+                children: [
+                  Text(
+                    '${_callLog.length} calls',
+                    style: const TextStyle(color: Colors.white54, fontSize: 13),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.refresh,
+                        color: Colors.white54, size: 20),
+                    onPressed: _loadCallLog,
+                  ),
+                ],
+              ),
+            ),
+            Expanded(child: _buildBody()),
+          ],
+        ),
+      );
+    }
+
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+      backgroundColor: const Color(0xFF0A0F0A),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1E1E1E),
+        backgroundColor: const Color(0xFF0A0F0A),
         title: const Text(
           'Call History',
           style: TextStyle(
@@ -82,10 +115,31 @@ class _CallLogScreenState extends State<CallLogScreen> {
   }
 
   Widget _buildBody() {
+    return StreamBuilder<bool>(
+      stream: _callService.syncStateStream,
+      initialData: _callService.isSyncing,
+      builder: (context, snapshot) {
+        final isSyncing = snapshot.data ?? false;
+        return Column(
+          children: [
+            if (isSyncing)
+              const LinearProgressIndicator(
+                backgroundColor: Colors.transparent,
+                color: Color(0xFF4ADE80),
+                minHeight: 2,
+              ),
+            Expanded(child: _buildList()),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildList() {
     if (_isLoading) {
       return const Center(
         child: CircularProgressIndicator(
-          color: Color(0xFF6C5CE7),
+          color: Color(0xFF4ADE80),
         ),
       );
     }
@@ -102,9 +156,10 @@ class _CallLogScreenState extends State<CallLogScreen> {
               style: TextStyle(color: Colors.grey[400]),
             ),
             const SizedBox(height: 16),
-            ElevatedButton(
+            FilledButton.icon(
               onPressed: _loadCallLog,
-              child: const Text('Retry'),
+              icon: const Icon(Icons.refresh),
+              label: const Text('Retry'),
             ),
           ],
         ),
@@ -116,14 +171,27 @@ class _CallLogScreenState extends State<CallLogScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.call, size: 64, color: Colors.grey[600]),
-            const SizedBox(height: 16),
-            Text(
-              'No call history',
-              style: TextStyle(
-                color: Colors.grey[400],
-                fontSize: 16,
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: const Color(0xFF166534).withValues(alpha: 0.2),
+                shape: BoxShape.circle,
               ),
+              child: const Icon(Icons.phone_outlined,
+                  size: 48, color: Color(0xFF4ADE80)),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'No Call History',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Call logs will appear here',
+              style: TextStyle(color: Colors.white54, fontSize: 14),
             ),
           ],
         ),
@@ -132,8 +200,11 @@ class _CallLogScreenState extends State<CallLogScreen> {
 
     return RefreshIndicator(
       onRefresh: _loadCallLog,
-      child: ListView.builder(
+      color: const Color(0xFF4ADE80),
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         itemCount: _callLog.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 2),
         itemBuilder: (context, index) => _buildCallLogTile(_callLog[index]),
       ),
     );
@@ -146,7 +217,7 @@ class _CallLogScreenState extends State<CallLogScreen> {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       leading: CircleAvatar(
-        backgroundColor: color.withOpacity(0.2),
+        backgroundColor: color.withValues(alpha: 0.15),
         child: Icon(icon, color: color, size: 20),
       ),
       title: Text(
@@ -211,7 +282,7 @@ class _CallLogScreenState extends State<CallLogScreen> {
   Color _getCallTypeColor(CallType type) {
     switch (type) {
       case CallType.incoming:
-        return Colors.green;
+        return const Color(0xFF4ADE80);
       case CallType.outgoing:
         return Colors.blue;
       case CallType.missed:

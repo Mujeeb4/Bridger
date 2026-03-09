@@ -17,7 +17,7 @@ import com.bridge.phone.MainActivity
 import com.bridge.phone.R
 
 /**
- * Foreground Service to keep Bridge Phone running in the background.
+ * Foreground Service to keep Bridger running in the background.
  * 
  * This service maintains:
  * - WebSocket server for iOS communication
@@ -31,7 +31,7 @@ class BridgeForegroundService : Service() {
         private const val TAG = "BridgeForegroundService"
         private const val NOTIFICATION_ID = 1001
         private const val CHANNEL_ID = "bridge_phone_service"
-        private const val CHANNEL_NAME = "Bridge Phone Service"
+        private const val CHANNEL_NAME = "Bridger Service"
         
         private const val ACTION_START = "com.bridge.phone.action.START"
         private const val ACTION_STOP = "com.bridge.phone.action.STOP"
@@ -105,7 +105,7 @@ class BridgeForegroundService : Service() {
                 CHANNEL_NAME,
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Keeps Bridge Phone running for SMS, calls, and notifications"
+                description = "Keeps Bridger running for SMS, calls, and notifications"
                 setShowBadge(false)
             }
             
@@ -115,7 +115,7 @@ class BridgeForegroundService : Service() {
     }
     
     private fun startForegroundWithNotification() {
-        val notification = buildNotification("Bridge Phone is running", "Connected to iOS device")
+        val notification = buildNotification("Bridger is running", "Connected to iOS device")
         
         // Android 14+ requires specifying foreground service type
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
@@ -150,7 +150,8 @@ class BridgeForegroundService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(content)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setColor(0xFF4ADE80.toInt())
             .setContentIntent(pendingIntent)
             .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Stop", stopIntent)
             .setOngoing(true)
@@ -176,9 +177,9 @@ class BridgeForegroundService : Service() {
                 PowerManager.PARTIAL_WAKE_LOCK,
                 "BridgePhone::BackgroundServiceLock"
             ).apply {
-                acquire(10 * 60 * 1000L) // 10 minutes, will be reacquired
+                acquire(24 * 60 * 60 * 1000L) // 24-hour timeout — auto-released for safety
             }
-            Log.d(TAG, "WakeLock acquired")
+            Log.d(TAG, "WakeLock acquired (24h timeout)")
         }
     }
     

@@ -6,6 +6,7 @@ enum PeripheralEvent {
     case discoveredServices([CBService])
     case discoveredCharacteristics([CBCharacteristic], CBService)
     case characteristicValueUpdated(CBCharacteristic, Data?)
+    case servicesInvalidated([CBService])
     case error(Error)
 }
 
@@ -87,6 +88,13 @@ class PeripheralDelegate: NSObject, CBPeripheralDelegate {
         }
         
         print("[PeripheralDelegate] Notifications \(characteristic.isNotifying ? "enabled" : "disabled") for \(characteristic.uuid)")
+    }
+    
+    // MARK: - Services Modified
+    
+    func peripheral(_ peripheral: CBPeripheral, didModifyServices invalidatedServices: [CBService]) {
+        print("[PeripheralDelegate] Services modified/invalidated: \(invalidatedServices.map { $0.uuid })")
+        eventHandler(.servicesInvalidated(invalidatedServices))
     }
     
     // MARK: - MTU Changed

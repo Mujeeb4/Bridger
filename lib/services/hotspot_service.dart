@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 
 import '../data/models/hotspot_models.dart';
+import 'communication_service.dart';
+import '../data/models/websocket_models.dart';
 
 /// Service for managing Wi-Fi hotspot functionality
 /// - Android: Creates local-only hotspot and shares credentials
@@ -12,12 +14,14 @@ class HotspotService {
   static const MethodChannel _methodChannel = MethodChannel('com.bridge.phone/hotspot');
   static const EventChannel _eventChannel = EventChannel('com.bridge.phone/hotspot_events');
 
+  final CommunicationService? _communicationService;
+
   Stream<HotspotEvent>? _eventStream;
 
   // Current state
   HotspotState _state = HotspotState.idle;
   HotspotState get state => _state;
-
+  
   // Credentials (Android: generated, iOS: received)
   HotspotCredentials? _credentials;
   HotspotCredentials? get credentials => _credentials;
@@ -35,6 +39,9 @@ class HotspotService {
   // Platform checks
   bool get isAndroid => Platform.isAndroid;
   bool get isIOS => Platform.isIOS;
+
+  HotspotService({CommunicationService? communicationService}) 
+      : _communicationService = communicationService;
 
   // ============================================================================
   // Initialization
@@ -211,6 +218,95 @@ class HotspotService {
     } on PlatformException catch (e) {
       _errorController.add('Failed to disconnect: ${e.message}');
     }
+  }
+
+  // ============================================================================
+  // iOS: Remote Control (Ask Android to Start/Stop Hotspot)
+  // ============================================================================
+
+  /// Request Android device to start hotspot
+  /// Returns received credentials if successful
+  Future<HotspotCredentials?> requestStartHotspot() async {
+    if (!isIOS || _communicationService == null) return null;
+
+    _updateState(HotspotState.starting);
+
+    // Send command to Android
+    final msg = WebSocketMessage.create(
+      type: MessageType.command,
+      payload: {
+        'action': 'HOTSPOT_CONTROL',
+        'control': 'START',
+      },
+    );
+    final success = await _communicationService.send(msg);
+
+    if (!success) {
+      _errorController.add('Failed to send start command to Android');
+      _updateState(HotspotState.error);
+      return null;
+    }
+
+    final completer = Completer<HotspotCredentials?>();
+    
+    // Listen for response
+    final subscription = _communicationService.messageStream.listen((msg) {
+      if (msg.type == MessageType.response && 
+          msg.payload['action'] == 'HOTSPOT_CONTROL' &&
+          msg.payload['success'] == true &&
+          msg.payload['ssid'] != null) {
+            
+          final ssid = msg.payload['ssid'] as String;
+          final password = msg.payload['password'] as String;
+          if (!completer.isCompleted) {
+             completer.complete(HotspotCredentials(ssid: ssid, password: password));
+          }
+      }
+    });
+
+    // Timeout after 15 seconds
+    Future.delayed(const Duration(seconds: 15), () {
+      if (!completer.isCompleted) {
+        completer.complete(null);
+      }
+    });
+
+    final credentials = await completer.future;
+    subscription.cancel();
+
+    if (credentials != null) {
+      _credentials = credentials;
+      _updateState(HotspotState.active); // Or distinct 'started' state
+      _credentialsController.add(credentials);
+    } else {
+      _updateState(HotspotState.error);
+    }
+    
+    return credentials;
+
+  }
+
+  /// Request Android device to stop hotspot
+  Future<bool> requestStopHotspot() async {
+    if (!isIOS || _communicationService == null) return false;
+
+    _updateState(HotspotState.stopping);
+    
+    final msg = WebSocketMessage.create(
+      type: MessageType.command,
+      payload: {
+        'action': 'HOTSPOT_CONTROL',
+        'control': 'STOP',
+      },
+    );
+    final success = await _communicationService.send(msg);
+    
+    if (success) {
+       // Optimistically update state
+       _updateState(HotspotState.idle);
+    }
+    
+    return success;
   }
 
   // ============================================================================

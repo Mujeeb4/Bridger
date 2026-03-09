@@ -167,7 +167,7 @@ class WebSocketServer(private val port: Int = DEFAULT_PORT) {
             val input = connection.socket.getInputStream()
             
             while (isRunning && !connection.socket.isClosed) {
-                val message = readFrame(input)
+                val message = readFrame(input, connection)
                 if (message != null) {
                     mainHandler.post {
                         callback?.onMessageReceived(connection.id, message)
@@ -184,7 +184,7 @@ class WebSocketServer(private val port: Int = DEFAULT_PORT) {
         }
     }
 
-    private fun readFrame(input: java.io.InputStream): String? {
+    private fun readFrame(input: java.io.InputStream, connection: ClientConnection): String? {
         try {
                             val firstByte = input.read()
             if (firstByte == -1) return null
@@ -232,13 +232,15 @@ class WebSocketServer(private val port: Int = DEFAULT_PORT) {
             }
             
             if (opcode == 0x1) { // Text
-                callback?.onMessageReceived(connection.id, String(payload))
+                return String(payload)
             } else if (opcode == 0x2) { // Binary
-                callback?.onBinaryMessageReceived(connection.id, payload)
+                mainHandler.post {
+                    callback?.onBinaryMessageReceived(connection.id, payload)
+                }
+                return null // Binary handled via callback, don't dispatch again
             }
             
-            // Return dummy non-null to keep loop alive, processing is done via callback
-            return "processed"
+            return null
         } catch (e: Exception) {
             return null
         }

@@ -4,7 +4,7 @@ import java.util.UUID
 
 /**
  * BLE Constants matching Flutter's app_constants.dart
- * These UUIDs define the GATT services and characteristics for Bridge Phone
+ * These UUIDs define the GATT services and characteristics for Bridger
  */
 object BLEConstants {
     
@@ -13,43 +13,43 @@ object BLEConstants {
     // ============================================================================
     
     /** Control Service - Commands and status */
-    val SERVICE_CONTROL: UUID = UUID.fromString("0000180A-0000-1000-8000-00805F9B34FB")
+    val SERVICE_CONTROL: UUID = UUID.fromString("4836180A-5e34-45c5-9252-710471c676af")
     
     /** Notification Service - Real-time SMS/Call/App alerts */
-    val SERVICE_NOTIFICATION: UUID = UUID.fromString("0000180B-0000-1000-8000-00805F9B34FB")
+    val SERVICE_NOTIFICATION: UUID = UUID.fromString("4836180B-5e34-45c5-9252-710471c676af")
     
     /** Data Service - Bulk data transfer */
-    val SERVICE_DATA: UUID = UUID.fromString("0000180C-0000-1000-8000-00805F9B34FB")
+    val SERVICE_DATA: UUID = UUID.fromString("4836180C-5e34-45c5-9252-710471c676af")
     
     // ============================================================================
     // Characteristic UUIDs - Control Service
     // ============================================================================
     
     /** Command characteristic - Write only, receives commands from iPhone */
-    val CHAR_COMMAND: UUID = UUID.fromString("00002A00-0000-1000-8000-00805F9B34FB")
+    val CHAR_COMMAND: UUID = UUID.fromString("48362A00-5e34-45c5-9252-710471c676af")
     
     /** Status characteristic - Read/Notify, reports device/connection status */
-    val CHAR_STATUS: UUID = UUID.fromString("00002A01-0000-1000-8000-00805F9B34FB")
+    val CHAR_STATUS: UUID = UUID.fromString("48362A01-5e34-45c5-9252-710471c676af")
     
     // ============================================================================
     // Characteristic UUIDs - Notification Service
     // ============================================================================
     
     /** SMS Alert characteristic - Notify only, pushes new SMS alerts */
-    val CHAR_SMS_ALERT: UUID = UUID.fromString("00002A10-0000-1000-8000-00805F9B34FB")
+    val CHAR_SMS_ALERT: UUID = UUID.fromString("48362A10-5e34-45c5-9252-710471c676af")
     
     /** Call Alert characteristic - Notify only, pushes call status */
-    val CHAR_CALL_ALERT: UUID = UUID.fromString("00002A11-0000-1000-8000-00805F9B34FB")
+    val CHAR_CALL_ALERT: UUID = UUID.fromString("48362A11-5e34-45c5-9252-710471c676af")
     
     /** App Notification characteristic - Notify only, pushes app notifications */
-    val CHAR_APP_NOTIFICATION: UUID = UUID.fromString("00002A12-0000-1000-8000-00805F9B34FB")
+    val CHAR_APP_NOTIFICATION: UUID = UUID.fromString("48362A12-5e34-45c5-9252-710471c676af")
     
     // ============================================================================
     // Characteristic UUIDs - Data Service
     // ============================================================================
     
     /** Bulk Transfer characteristic - Read/Write/Notify for large data */
-    val CHAR_BULK_TRANSFER: UUID = UUID.fromString("00002A20-0000-1000-8000-00805F9B34FB")
+    val CHAR_BULK_TRANSFER: UUID = UUID.fromString("48362A20-5e34-45c5-9252-710471c676af")
     
     // ============================================================================
     // Standard Descriptors
@@ -62,7 +62,7 @@ object BLEConstants {
     // Advertising Constants
     // ============================================================================
     
-    const val DEVICE_NAME = "Bridge Phone"
+    const val DEVICE_NAME = "Bridger"
     const val MANUFACTURER_ID = 0x1234 // Custom manufacturer ID
     
     // ============================================================================
@@ -82,6 +82,8 @@ object BLEConstants {
         const val START_HOTSPOT = "START_HOTSPOT"
         const val STOP_HOTSPOT = "STOP_HOTSPOT"
         const val PING = "PING"
+        const val PAIRING_REQUEST = "PAIRING_REQUEST"
+        const val PAIRING_RESPONSE = "PAIRING_RESPONSE"
     }
     
     // ============================================================================

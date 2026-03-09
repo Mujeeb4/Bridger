@@ -61,6 +61,18 @@ class HotspotManager(private val context: Context) {
             return
         }
 
+        // Check for mobile data / internet connectivity - REMOVED for local-only hotspot
+        // LocalOnlyHotspot does not require upstream internet.
+        /*
+        if (!isInternetAvailable()) {
+            Log.w(TAG, "No internet connection detected when starting hotspot")
+            callback?.onError("NO_INTERNET")
+            // Optional: You could fire an intent here to open settings, but 
+            // returning the error allows the UI/Flutter to decide how to handle it.
+            return
+        }
+        */
+
         if (isHotspotActive) {
             Log.d(TAG, "Hotspot already active")
             ssid?.let { s ->
@@ -136,6 +148,25 @@ class HotspotManager(private val context: Context) {
         } catch (e: Exception) {
             Log.e(TAG, "Error starting hotspot", e)
             callback?.onError("Error: ${e.message}")
+        }
+    }
+
+    private fun isInternetAvailable(): Boolean {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val network = connectivityManager.activeNetwork ?: return false
+            val activeNetwork = connectivityManager.getNetworkCapabilities(network) ?: return false
+            return when {
+                activeNetwork.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI) -> true
+                activeNetwork.hasTransport(android.net.NetworkCapabilities.TRANSPORT_CELLULAR) -> true
+                activeNetwork.hasTransport(android.net.NetworkCapabilities.TRANSPORT_ETHERNET) -> true
+                else -> false
+            }
+        } else {
+            @Suppress("DEPRECATION")
+            val networkInfo = connectivityManager.activeNetworkInfo ?: return false
+            @Suppress("DEPRECATION")
+            return networkInfo.isConnected
         }
     }
 

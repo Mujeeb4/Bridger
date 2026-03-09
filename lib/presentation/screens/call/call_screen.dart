@@ -10,7 +10,7 @@ import '../../../core/di/injection.dart';
 class CallScreen extends StatefulWidget {
   final CallInfo callInfo;
 
-  const CallScreen({super.key, required this.callInfo});
+  const CallScreen({required this.callInfo, super.key});
 
   @override
   State<CallScreen> createState() => _CallScreenState();
@@ -58,7 +58,7 @@ class _CallScreenState extends State<CallScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+      backgroundColor: const Color(0xFF0A0F0A),
       body: SafeArea(
         child: Column(
           children: [
@@ -79,14 +79,14 @@ class _CallScreenState extends State<CallScreen> {
         // Caller avatar
         CircleAvatar(
           radius: 60,
-          backgroundColor: const Color(0xFF6C5CE7).withOpacity(0.2),
+          backgroundColor: const Color(0xFF166534).withValues(alpha: 0.2),
           child: Text(
-            _callInfo.displayName.isNotEmpty 
-                ? _callInfo.displayName[0].toUpperCase() 
+            _callInfo.displayName.isNotEmpty
+                ? _callInfo.displayName[0].toUpperCase()
                 : '?',
             style: const TextStyle(
               fontSize: 48,
-              color: Color(0xFF6C5CE7),
+              color: Color(0xFF4ADE80),
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -106,7 +106,7 @@ class _CallScreenState extends State<CallScreen> {
 
         // Call status / duration
         Text(
-          _callInfo.state == CallState.active 
+          _callInfo.state == CallState.active
               ? _callInfo.formattedDuration
               : _callInfo.state.displayName,
           style: TextStyle(
@@ -119,7 +119,8 @@ class _CallScreenState extends State<CallScreen> {
   }
 
   Widget _buildCallControls() {
-    if (_callInfo.state == CallState.ringing && _callInfo.type == CallType.incoming) {
+    if (_callInfo.state == CallState.ringing &&
+        _callInfo.type == CallType.incoming) {
       // Incoming call - show accept/reject
       return Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -201,8 +202,7 @@ class _CallScreenState extends State<CallScreen> {
   Widget _buildControlButton({
     required IconData icon,
     required String label,
-    bool isActive = false,
-    required VoidCallback onPressed,
+    required VoidCallback onPressed, bool isActive = false,
   }) {
     return GestureDetector(
       onTap: onPressed,
@@ -212,9 +212,8 @@ class _CallScreenState extends State<CallScreen> {
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              color: isActive 
-                  ? Colors.white 
-                  : Colors.white.withOpacity(0.1),
+              color:
+                  isActive ? Colors.white : Colors.white.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(

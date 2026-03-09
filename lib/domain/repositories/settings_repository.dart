@@ -31,4 +31,16 @@ abstract class SettingsRepository {
   Future<void> setPairedDeviceId(String? deviceId);
   Future<bool> isAutoConnectEnabled();
   Future<void> setAutoConnectEnabled(bool value);
+  
+  // Connection Settings
+  Future<int> getConnectionTimeout();
+  Future<void> setConnectionTimeout(int seconds);
+  Future<int> getReconnectAttempts();
+  Future<void> setReconnectAttempts(int attempts);
+  Future<String> getBatteryMode();
+  Future<void> setBatteryMode(String mode);
+  
+  // Security Settings
+  Future<bool> isEncryptionEnabled();
+  Future<void> setEncryptionEnabled(bool value);
 }

@@ -1,4 +1,5 @@
 /// Hotspot data models
+library;
 
 /// Hotspot credentials for Wi-Fi connection
 class HotspotCredentials {

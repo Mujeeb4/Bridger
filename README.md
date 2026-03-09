@@ -1,4 +1,4 @@
-# Bridge Phone App
+# Bridger App
 
 Cross-platform phone bridge application that connects Android and iPhone devices, allowing the iPhone to use the Android's cellular capabilities (SMS, calls) while acting as the primary device.
 
@@ -145,7 +145,7 @@ This is a phased development project. Each phase builds upon the previous one.
 
 ## License
 
-Copyright © 2025 Bridge Phone. All rights reserved.
+Copyright © 2025 Bridger. All rights reserved.
 
 ## Contact
 

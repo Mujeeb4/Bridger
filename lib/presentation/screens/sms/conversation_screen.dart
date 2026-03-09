@@ -12,10 +12,8 @@ class ConversationScreen extends StatefulWidget {
   final String displayName;
 
   const ConversationScreen({
-    super.key,
+    required this.address, required this.displayName, super.key,
     this.threadId,
-    required this.address,
-    required this.displayName,
   });
 
   @override
@@ -126,9 +124,9 @@ class _ConversationScreenState extends State<ConversationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+      backgroundColor: const Color(0xFF0A0F0A),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1E1E1E),
+        backgroundColor: const Color(0xFF0A0F0A),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
@@ -173,7 +171,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
     if (_isLoading) {
       return const Center(
         child: CircularProgressIndicator(
-          color: Color(0xFF6C5CE7),
+          color: Color(0xFF4ADE80),
         ),
       );
     }
@@ -252,9 +250,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
           maxWidth: MediaQuery.of(context).size.width * 0.75,
         ),
         decoration: BoxDecoration(
-          color: isOutgoing
-              ? const Color(0xFF6C5CE7)
-              : const Color(0xFF2D2D2D),
+          color: isOutgoing ? const Color(0xFF166534) : const Color(0xFF1A2A1A),
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(16),
             topRight: const Radius.circular(16),
@@ -277,7 +273,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
               message.formattedTime,
               style: TextStyle(
                 color: isOutgoing
-                    ? Colors.white.withOpacity(0.7)
+                    ? Colors.white.withValues(alpha: 0.7)
                     : Colors.grey[600],
                 fontSize: 11,
               ),
